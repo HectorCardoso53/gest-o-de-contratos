@@ -1,0 +1,365 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Prefeitura de Oriximiná — Gestão de Contratos</title>
+
+    <link rel="stylesheet" href="style.css">
+
+    <link
+        href="https://fonts.googleapis.com/css2?family=Sora:wght@300;400;500;600;700;800&family=JetBrains+Mono:wght@400;500&display=swap"
+        rel="stylesheet">
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.11.3/font/bootstrap-icons.css" rel="stylesheet">
+    <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+</head>
+
+<body>
+    <!-- ═══════════════════════ LOGIN ═══════════════════════ -->
+    <div id="loginScreen">
+        <div class="login-bg"></div>
+        <div class="login-grid"></div>
+        <div class="login-card">
+            <div class="login-logo">
+                <div class="login-logo-icon">
+                    <img src="prefeitura.png" alt="Prefeitura de Oriximiná" class="logo-prefeitura">
+                </div>
+                <div class="login-logo-text">
+                    <strong>Prefeitura de Oriximiná</strong>
+                    <span>Sistema de Gestão de Contratos</span>
+                </div>
+            </div>
+            <h2>Bem-vindo</h2>
+            <p>Acesse com suas credenciais institucionais.</p>
+            <div class="form-group">
+                <label>Email</label>
+                <div class="input-wrap">
+                    <span class="icon"><i class="bi bi-person"></i></span>
+                    <input type="text" id="lgUser" placeholder="Digite seu usuário" autocomplete="username">
+                </div>
+            </div>
+            <div class="form-group">
+                <label>Senha</label>
+                <div class="input-wrap">
+                    <span class="icon"><i class="bi bi-lock"></i></span>
+                    <input type="password" id="lgPass" placeholder="Digite sua senha" autocomplete="current-password"
+                        onkeydown="if(event.key==='Enter')logar()">
+                </div>
+            </div>
+            <button class="btn-primary" id="btnLogin">
+                <span id="btnLoginText">Entrar no Sistema</span>
+            </button>
+
+            <div class="login-progress" id="loginProgress">
+                <div class="login-progress-bar"></div>
+            </div>
+            <div class="login-error" id="lgError">Usuário ou senha incorretos.</div>
+
+        </div>
+    </div>
+
+    <!-- ═══════════════════════ APP ═══════════════════════ -->
+    <div id="app">
+
+        <!-- SIDEBAR -->
+        <aside id="sidebar">
+            <div class="sidebar-header">
+                <div class="sidebar-logo">
+                    <div class="login-logo-icon">
+                        <img src="prefeitura.png" alt="Prefeitura de Oriximiná" class="logo-prefeitura">
+                    </div>
+                    <div class="sidebar-logo-text">
+                        <strong>Oriximiná</strong>
+                        <small>Gestão de Contratos</small>
+                    </div>
+                </div>
+            </div>
+
+            <nav class="sidebar-nav">
+                <div class="nav-section">
+                    <div class="nav-section-title">Principal</div>
+                    <button class="nav-item active" onclick="goTo('dashboard')">
+                        <span class="nav-icon"><i class="bi bi-speedometer2"></i></span>Dashboard
+                    </button>
+                    <button class="nav-item" onclick="goTo('contratos')">
+                        <span class="nav-icon"><i class="bi bi-file-earmark-text"></i></span>Contratos
+                    </button>
+                    <button class="nav-item" onclick="goTo('alertas')">
+                        <span class="nav-icon"><i class="bi bi-bell"></i></span>Alertas
+                        <span id="alertBadge"
+                            style="margin-left:auto;background:var(--danger);color:white;border-radius:10px;padding:1px 7px;font-size:10px;font-weight:700;display:none;"></span>
+                    </button>
+                </div>
+                <div class="nav-section">
+                    <div class="nav-section-title">Relatórios</div>
+                    <button class="nav-item" onclick="goTo('relatorios')">
+                        <span class="nav-icon"><i class="bi bi-graph-up"></i></span> Relatórios
+                    </button>
+                    <button class="nav-item" onclick="goTo('exportar')">
+                        <span class="nav-icon"><i class="bi bi-download"></i></span> Exportar
+                    </button>
+                </div>
+            </nav>
+
+            <div class="sidebar-footer">
+                <div class="user-card">
+                    <div class="user-avatar" id="userAvatar">A</div>
+                    <div class="user-info">
+                        <strong id="userName">Administrador</strong>
+                        <small id="userRole">Admin</small>
+                    </div>
+                    <button class="logout-btn">
+                        <i class="bi bi-box-arrow-right"></i>
+                    </button>
+                </div>
+            </div>
+        </aside>
+
+        <!-- MAIN -->
+        <div id="main">
+            <div class="topbar">
+                <div class="topbar-title">
+                    <h1 id="pageTitle">Dashboard</h1>
+                    <p id="pageSubtitle">Visão geral do sistema</p>
+                </div>
+                <div class="topbar-actions">
+                    <div class="topbar-date" id="topDate"></div>
+                    <button class="btn-sm btn-accent" onclick="abrirModalCadastro()">+ Novo Contrato</button>
+                </div>
+            </div>
+
+            <div class="content">
+
+                <!-- ── DASHBOARD ── -->
+                <div id="pageDashboard" class="page active">
+                    <div id="alertBannerWrapper"></div>
+                    <div class="stats-grid" id="statsGrid"></div>
+                    <div class="charts-grid">
+                        <div class="chart-card">
+                            <h3>Contratos por Situação</h3>
+                            <canvas id="chartSituacao" height="200"></canvas>
+                        </div>
+                        <div class="chart-card">
+                            <h3>Contratos por Mês de Vencimento</h3>
+                            <canvas id="chartVencimento" height="200"></canvas>
+                        </div>
+                    </div>
+                    <div class="chart-card">
+                        <h3>Evolução de Valores (R$) por Ano</h3>
+                        <canvas id="chartValores" height="100"></canvas>
+                    </div>
+                </div>
+
+                <!-- ── CONTRATOS ── -->
+                <div id="pageContratos" class="page">
+                    <div class="table-header">
+                        <h3>Todos os Contratos</h3>
+                        <div class="table-actions">
+                            <div class="search-box">
+                                <span class="sicon">🔍</span>
+                                <input type="text" placeholder="Buscar..." id="searchInput" oninput="renderTabela()">
+                            </div>
+                            <select class="filter-select" id="filterSituacao" onchange="renderTabela()">
+                                <option value="">Todas as situações</option>
+                                <option>Ativo</option>
+                                <option>Finalizado</option>
+                                <option>Aditivado</option>
+                                <option>Suspenso</option>
+                            </select>
+                            <select class="filter-select" id="filterAlerta" onchange="renderTabela()">
+                                <option value="">Todos os prazos</option>
+                                <option value="critico">Crítico (≤20 dias)</option>
+                                <option value="aviso">Aviso (21-30 dias)</option>
+                                <option value="ok">Normal (>30 dias)</option>
+                            </select>
+                            <button class="btn-sm btn-accent" onclick="abrirModalCadastro()">+ Novo</button>
+                        </div>
+                    </div>
+                    <div class="table-wrap">
+                        <table>
+                            <thead>
+                                <tr>
+                                    <th>Nº Contrato</th>
+                                    <th>Contratada</th>
+                                    <th>Objeto</th>
+                                    <th>Valor Global</th>
+                                    <th>Vigência Final</th>
+                                    <th>Dias</th>
+                                    <th>Situação</th>
+                                    <th>Ações</th>
+                                </tr>
+                            </thead>
+                            <tbody id="tabelaBody"></tbody>
+                        </table>
+                    </div>
+                    <div class="pagination" id="pagination"></div>
+                </div>
+
+                <!-- ── ALERTAS ── -->
+                <div id="pageAlertas" class="page">
+                    <div id="alertasContent"></div>
+                </div>
+
+                <!-- ── RELATÓRIOS ── -->
+                <div id="pageRelatorios" class="page">
+                    <div class="stats-grid" id="relStats"></div>
+                    <div class="chart-card" style="margin-bottom:20px;">
+                        <h3>Contratos por Secretaria / Setor</h3>
+                        <canvas id="chartSetor" height="100"></canvas>
+                    </div>
+                    <div class="chart-card">
+                        <h3>Top 10 Contratos por Valor</h3>
+                        <canvas id="chartTop10" height="150"></canvas>
+                    </div>
+                </div>
+
+                <!-- ── EXPORTAR ── -->
+                <div id="pageExportar" class="page">
+                    <div
+                        style="background:var(--surface);border:1px solid var(--border);border-radius:14px;padding:32px;max-width:600px;">
+                        <h3 style="margin-bottom:6px;">Exportar Dados</h3>
+                        <p style="font-size:13px;color:var(--text2);margin-bottom:24px;">Selecione o formato e os
+                            filtros desejados.</p>
+
+                        <div class="field" style="margin-bottom:16px;">
+                            <label>Situação</label>
+                            <select id="expSituacao" class="filter-select" style="width:100%;">
+                                <option value="">Todas</option>
+                                <option>Ativo</option>
+                                <option>Finalizado</option>
+                                <option>Aditivado</option>
+                                <option>Suspenso</option>
+                            </select>
+                        </div>
+
+                        <div class="field" style="margin-bottom:24px;">
+                            <label>Prazo de Vencimento</label>
+                            <select id="expPrazo" class="filter-select" style="width:100%;">
+                                <option value="">Todos</option>
+                                <option value="critico">Crítico (≤20 dias)</option>
+                                <option value="aviso">Aviso (21-30 dias)</option>
+                                <option value="expirado">Expirados</option>
+                            </select>
+                        </div>
+
+                        <div class="export-options">
+                            <button class="btn-sm btn-accent" onclick="exportarCSV()">
+                                <i class="bi bi-file-earmark-arrow-down"></i> CSV
+                            </button>
+
+                            <button class="btn-sm btn-success" onclick="exportarJSON()">
+                                <i class="bi bi-filetype-json"></i> JSON
+                            </button>
+
+                            <button class="btn-sm"
+                                style="background:var(--surface2);color:var(--text2);border:1px solid var(--border);"
+                                onclick="exportarHTML()">
+                                <i class="bi bi-printer"></i> Imprimir
+                            </button>
+                        </div>
+                    </div>
+                </div>
+
+            </div><!-- /content -->
+        </div><!-- /main -->
+    </div><!-- /app -->
+
+    <!-- ═══════ MODAL CADASTRO / EDIÇÃO ═══════ -->
+    <div class="modal-overlay" id="modalCad">
+        <div class="modal">
+            <div class="modal-header">
+                <h2 id="modalCadTitle">Novo Contrato</h2>
+                <button class="modal-close" onclick="fecharModal('modalCad')">✕</button>
+            </div>
+            <div class="modal-body">
+                <div class="section-title">Dados do Contrato</div>
+                <div class="form-grid">
+                    <div class="field"><label>Nº Processo</label><input id="fProcesso" placeholder="Ex: 001/2025"></div>
+                    <div class="field"><label>Nº Contrato</label><input id="fContrato" placeholder="Ex: CTR-001/2025">
+                    </div>
+                    <div class="field form-full"><label>Contratada</label><input id="fContratada"
+                            placeholder="Nome da empresa"></div>
+                    <div class="field"><label>CNPJ</label><input id="fCNPJ" placeholder="00.000.000/0000-00"></div>
+                    <div class="field"><label>Setor / Secretaria</label>
+                        <select id="fSetor">
+                            <option>Secretaria de Saúde</option>
+                            <option>Secretaria de Educação</option>
+                            <option>Secretaria de Obras</option>
+                            <option>Secretaria de Administração</option>
+                            <option>Secretaria de Finanças</option>
+                            <option>Secretaria de Assistência Social</option>
+                            <option>Gabinete</option>
+                            <option>Outro</option>
+                        </select>
+                    </div>
+                    <div class="field form-full"><label>Objeto</label><textarea id="fObjeto"
+                            placeholder="Descrição do objeto contratual"></textarea></div>
+                </div>
+
+                <div class="section-title">Vigência e Valores</div>
+                <div class="form-grid">
+                    <div class="field"><label>Vigência Inicial</label><input type="date" id="fVigInicial"></div>
+                    <div class="field"><label>Vigência Final</label><input type="date" id="fVigFinal"></div>
+                    <div class="field"><label>Valor Global (R$)</label><input type="number" id="fValor"
+                            placeholder="0,00" min="0" step="0.01"></div>
+                    <div class="field"><label>Situação</label>
+                        <select id="fSituacao">
+                            <option>Ativo</option>
+                            <option>Finalizado</option>
+                            <option>Aditivado</option>
+                            <option>Suspenso</option>
+                        </select>
+                    </div>
+                    <div class="field"><label>Modalidade Licitação</label>
+                        <select id="fModalidade">
+                            <option>Pregão Eletrônico</option>
+                            <option>Pregão Presencial</option>
+                            <option>Tomada de Preços</option>
+                            <option>Concorrência</option>
+                            <option>Dispensa de Licitação</option>
+                            <option>Inexigibilidade</option>
+                        </select>
+                    </div>
+                    <div class="field"><label>Responsável</label><input id="fResponsavel"
+                            placeholder="Nome do gestor do contrato"></div>
+                    <div class="field form-full"><label>Observações</label><textarea id="fObs"
+                            placeholder="Informações adicionais..." style="min-height:60px;"></textarea></div>
+                </div>
+            </div>
+            <div class="modal-footer">
+                <button class="btn-sm"
+                    style="background:var(--surface2);color:var(--text2);border:1px solid var(--border);"
+                    onclick="fecharModal('modalCad')">Cancelar</button>
+                <button class="btn-sm btn-accent" onclick="salvarContrato()" id="btnSalvarModal">Salvar
+                    Contrato</button>
+            </div>
+        </div>
+    </div>
+
+    <!-- ═══════ MODAL DETALHE ═══════ -->
+    <div class="modal-overlay" id="modalDetalhe">
+        <div class="modal">
+            <div class="modal-header">
+                <h2>Detalhes do Contrato</h2>
+                <button class="modal-close" onclick="fecharModal('modalDetalhe')">✕</button>
+            </div>
+            <div class="modal-body" id="modalDetalheBody"></div>
+            <div class="modal-footer">
+                <button class="btn-sm"
+                    style="background:var(--surface2);color:var(--text2);border:1px solid var(--border);"
+                    onclick="fecharModal('modalDetalhe')">Fechar</button>
+                <button class="btn-sm btn-accent" id="btnEditDetalhe">Editar</button>
+            </div>
+        </div>
+    </div>
+
+    <!-- TOAST -->
+    <div id="toast"></div>
+
+    <!-- Bootstrap JS -->
+    <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.2/dist/js/bootstrap.bundle.min.js"></script>
+    <script type="module" src="script.js"></script>
+</body>
+
+</html>

@@ -1,0 +1,922 @@
+// 🔥 Firebase
+import { initializeApp } from "https://www.gstatic.com/firebasejs/10.12.2/firebase-app.js";
+import { 
+  getAuth, 
+  signInWithEmailAndPassword, 
+  onAuthStateChanged,
+  signOut
+} from "https://www.gstatic.com/firebasejs/10.12.2/firebase-auth.js";
+
+import { 
+  getFirestore, 
+  collection, 
+  addDoc, 
+  getDocs, 
+  updateDoc, 
+  deleteDoc, 
+  doc 
+} from "https://www.gstatic.com/firebasejs/10.12.2/firebase-firestore.js";
+
+
+
+
+const firebaseConfig = {
+  apiKey: "AIzaSyAn4YFjsLH2NsbXxZMTJtNIQIV0oxXi2cM",
+  authDomain: "gestao-de-contratos-4ad66.firebaseapp.com",
+  projectId: "gestao-de-contratos-4ad66",
+  storageBucket: "gestao-de-contratos-4ad66.firebasestorage.app",
+  messagingSenderId: "528807844859",
+  appId: "1:528807844859:web:2fcfae3f1e6f1e51bec95e"
+};
+
+const app = initializeApp(firebaseConfig);
+const auth = getAuth(app);
+const db = getFirestore(app);
+
+let currentUser = null;
+/* ─── DATA ─── */
+let editingIndex = null;
+let currentPage = 1;
+const PER_PAGE = 12;
+let charts = {};
+
+
+onAuthStateChanged(auth, (user) => {
+  if (user) {
+    currentUser = user;
+
+    document.getElementById('loginScreen').style.display = 'none';
+    document.getElementById('app').style.display = 'block';
+
+    document.getElementById('userName').textContent = user.email;
+    document.getElementById('userRole').textContent = 'Usuário';
+    document.getElementById('userAvatar').textContent = user.email.charAt(0).toUpperCase();
+
+    initApp();
+    carregarContratosFirebase();
+  } else {
+    document.getElementById('app').style.display = 'none';
+    document.getElementById('loginScreen').style.display = 'flex';
+  }
+});
+
+
+// Esperar DOM carregar
+document.addEventListener("DOMContentLoaded", () => {
+
+  document.getElementById("btnLogin")
+    .addEventListener("click", logar);
+
+  document.getElementById("lgPass")
+    .addEventListener("keydown", (e) => {
+      if (e.key === "Enter") logar();
+    });
+
+  document.querySelector(".logout-btn")
+    .addEventListener("click", logout);
+
+});
+
+
+function getData() { return JSON.parse(localStorage.getItem('contratos_ori') || '[]'); }
+function setData(d) { localStorage.setItem('contratos_ori', JSON.stringify(d)); }
+
+function diasRestantes(data) {
+  if (!data) return null;
+  return Math.ceil((new Date(data) - new Date()) / 86400000);
+}
+
+
+
+function logout() {
+  signOut(auth);
+}
+
+async function logar() {
+
+  const email = document.getElementById("lgUser").value.trim();
+  const senha = document.getElementById("lgPass").value;
+
+  const btn = document.getElementById("btnLogin");
+  const btnText = document.getElementById("btnLoginText");
+  const progress = document.getElementById("loginProgress");
+  const bar = document.querySelector(".login-progress-bar");
+
+  if (!email || !senha) {
+    document.getElementById("lgError").textContent = "Preencha email e senha.";
+    document.getElementById("lgError").style.display = "block";
+    return;
+  }
+
+  try {
+
+    btn.disabled = true;
+    btnText.innerHTML = '<i class="bi bi-arrow-repeat spin"></i> Autenticando...';
+    progress.style.display = 'block';
+    bar.style.width = '60%';
+
+    await signInWithEmailAndPassword(auth, email, senha);
+
+    bar.style.width = '100%';
+
+  } catch (error) {
+
+    btn.disabled = false;
+    btnText.innerHTML = 'Entrar no Sistema';
+    progress.style.display = 'none';
+    bar.style.width = '0%';
+
+    document.getElementById("lgError").textContent = "Email ou senha inválidos.";
+    document.getElementById("lgError").style.display = "block";
+
+    console.error(error);
+  }
+}
+
+/* ─── INIT ─── */
+function initApp() {
+  updateTopDate();
+  setInterval(updateTopDate, 30000);
+  goTo('dashboard');
+  // seed sample data
+  if (!getData().length) seedData();
+}
+
+function updateTopDate() {
+  const now = new Date();
+  document.getElementById('topDate').textContent = now.toLocaleDateString('pt-BR', { weekday:'short', day:'2-digit', month:'short', year:'numeric' });
+}
+
+/* ─── NAVIGATION ─── */
+const PAGES = {
+  dashboard:  { el:'pageDashboard',  title:'Dashboard',    subtitle:'Visão geral do sistema',     nav:0 },
+  contratos:  { el:'pageContratos',  title:'Contratos',    subtitle:'Lista de todos os contratos', nav:1 },
+  alertas:    { el:'pageAlertas',    title:'Alertas',      subtitle:'Contratos próximos ao vencimento', nav:2 },
+  relatorios: { el:'pageRelatorios', title:'Relatórios',   subtitle:'Análise e estatísticas',      nav:3 },
+  exportar:   { el:'pageExportar',   title:'Exportar',     subtitle:'Exporte dados do sistema',    nav:4 },
+};
+
+function goTo(page) {
+  document.querySelectorAll('.page').forEach(p => p.classList.remove('active'));
+  document.querySelectorAll('.nav-item').forEach(n => n.classList.remove('active'));
+  const cfg = PAGES[page];
+  document.getElementById(cfg.el).classList.add('active');
+  document.querySelectorAll('.nav-item')[cfg.nav].classList.add('active');
+  document.getElementById('pageTitle').textContent = cfg.title;
+  document.getElementById('pageSubtitle').textContent = cfg.subtitle;
+
+  if (page === 'dashboard') renderDashboard();
+  if (page === 'contratos') { renderTabela(); }
+  if (page === 'alertas') renderAlertas();
+  if (page === 'relatorios') renderRelatorios();
+  updateAlertBadge();
+}
+
+/* ─── DASHBOARD ─── */
+function renderDashboard() {
+  const data = getData();
+  const hoje = new Date();
+
+  const total = data.length;
+  const ativos = data.filter(c => c.situacao === 'Ativo').length;
+  const criticos = data.filter(c => { const d = diasRestantes(c.vigFinal); return d !== null && d >= 0 && d <= 20; }).length;
+  const aviso = data.filter(c => { const d = diasRestantes(c.vigFinal); return d !== null && d > 20 && d <= 30; }).length;
+  const expirados = data.filter(c => { const d = diasRestantes(c.vigFinal); return d !== null && d < 0; }).length;
+  const valorTotal = data.reduce((s, c) => s + Number(c.valorGlobal || 0), 0);
+
+  // alert banner
+  const bannerWrap = document.getElementById('alertBannerWrapper');
+  bannerWrap.innerHTML = '';
+  if (criticos > 0) {
+  bannerWrap.innerHTML = `
+    <div class="alert-banner">
+      <span class="alert-banner-icon">
+        <i class="bi bi-exclamation-octagon-fill"></i>
+      </span>
+      <div>
+        <strong>${criticos} contrato(s) vencendo em até 20 dias!</strong>
+        Verifique a aba de Alertas.
+      </div>
+    </div>
+  `;
+}
+
+  document.getElementById('statsGrid').innerHTML = `
+  <div class="stat-card s-blue">
+    <div class="stat-icon"><i class="bi bi-file-earmark-text"></i></div>
+    <div class="stat-label">Total</div>
+    <div class="stat-value">${total}</div>
+    <div class="stat-sub">Contratos cadastrados</div>
+  </div>
+
+  <div class="stat-card s-green">
+    <div class="stat-icon"><i class="bi bi-check-circle"></i></div>
+    <div class="stat-label">Ativos</div>
+    <div class="stat-value">${ativos}</div>
+    <div class="stat-sub">${total ? Math.round(ativos/total*100) : 0}% do total</div>
+  </div>
+
+  <div class="stat-card s-red">
+    <div class="stat-icon"><i class="bi bi-exclamation-triangle"></i></div>
+    <div class="stat-label">Críticos</div>
+    <div class="stat-value">${criticos}</div>
+    <div class="stat-sub">≤ 20 dias para vencer</div>
+  </div>
+
+  <div class="stat-card s-yellow">
+    <div class="stat-icon"><i class="bi bi-clock"></i></div>
+    <div class="stat-label">Aviso</div>
+    <div class="stat-value">${aviso}</div>
+    <div class="stat-sub">21 a 30 dias</div>
+  </div>
+
+  <div class="stat-card s-purple">
+    <div class="stat-icon"><i class="bi bi-cash-stack"></i></div>
+    <div class="stat-label">Valor Total</div>
+    <div class="stat-value" style="font-size:18px;">R$ ${valorTotal.toLocaleString('pt-BR',{minimumFractionDigits:0})}</div>
+    <div class="stat-sub">Todos os contratos</div>
+  </div>
+
+  <div class="stat-card s-cyan">
+    <div class="stat-icon"><i class="bi bi-x-circle"></i></div>
+    <div class="stat-label">Expirados</div>
+    <div class="stat-value">${expirados}</div>
+    <div class="stat-sub">Vigência vencida</div>
+  </div>
+`;
+  updateAlertBadge();
+  renderChartSituacao(data);
+  renderChartVencimento(data);
+  renderChartValores(data);
+}
+
+function updateAlertBadge() {
+  const data = getData();
+  const n = data.filter(c => { const d = diasRestantes(c.vigFinal); return d !== null && d >= 0 && d <= 30; }).length;
+  const badge = document.getElementById('alertBadge');
+  if (n > 0) { badge.style.display = 'inline-block'; badge.textContent = n; }
+  else badge.style.display = 'none';
+}
+
+function renderChartSituacao(data) {
+  const ctx = document.getElementById('chartSituacao');
+  if (charts.sit) charts.sit.destroy();
+  const counts = {};
+  data.forEach(c => counts[c.situacao] = (counts[c.situacao] || 0) + 1);
+  charts.sit = new Chart(ctx, {
+    type: 'doughnut',
+    data: {
+      labels: Object.keys(counts),
+      datasets: [{ data: Object.values(counts), backgroundColor: ['#3b82f6','#10b981','#8b5cf6','#f59e0b'], borderWidth:0, hoverOffset:6 }]
+    },
+    options: { plugins:{ legend:{ labels:{ color:'#94a3b8', font:{family:'Sora'} } } }, animation:{ animateScale:true } }
+  });
+}
+
+function renderChartVencimento(data) {
+  const ctx = document.getElementById('chartVencimento');
+  if (charts.venc) charts.venc.destroy();
+  const months = {};
+  data.forEach(c => {
+    if (!c.vigFinal) return;
+    const m = c.vigFinal.substring(0,7);
+    months[m] = (months[m] || 0) + 1;
+  });
+  const sorted = Object.keys(months).sort();
+  charts.venc = new Chart(ctx, {
+    type: 'bar',
+    data: {
+      labels: sorted.map(m => { const [y,mo] = m.split('-'); return new Date(y,mo-1).toLocaleDateString('pt-BR',{month:'short',year:'2-digit'}); }),
+      datasets: [{ label:'Contratos', data: sorted.map(m=>months[m]), backgroundColor:'rgba(59,130,246,0.6)', borderRadius:6, borderSkipped:false }]
+    },
+    options: { plugins:{ legend:{ display:false } }, scales:{ x:{ ticks:{color:'#64748b'}, grid:{display:false} }, y:{ ticks:{color:'#64748b'}, grid:{color:'rgba(255,255,255,0.05)'} } } }
+  });
+}
+
+function renderChartValores(data) {
+  const ctx = document.getElementById('chartValores');
+  if (charts.val) charts.val.destroy();
+  const years = {};
+  data.forEach(c => {
+    if (!c.vigInicial) return;
+    const y = c.vigInicial.substring(0,4);
+    years[y] = (years[y] || 0) + Number(c.valorGlobal || 0);
+  });
+  const sorted = Object.keys(years).sort();
+  charts.val = new Chart(ctx, {
+    type: 'line',
+    data: {
+      labels: sorted,
+      datasets: [{ label:'Valor (R$)', data: sorted.map(y=>years[y]), borderColor:'#06b6d4', backgroundColor:'rgba(6,182,212,0.08)', fill:true, tension:0.4, pointBackgroundColor:'#06b6d4', pointRadius:5 }]
+    },
+    options: { plugins:{ legend:{ labels:{ color:'#94a3b8' } } }, scales:{ x:{ ticks:{color:'#64748b'}, grid:{display:false} }, y:{ ticks:{ color:'#64748b', callback:v=>'R$ '+Number(v).toLocaleString('pt-BR') }, grid:{color:'rgba(255,255,255,0.05)'} } } }
+  });
+}
+
+/* ─── TABELA ─── */
+function renderTabela() {
+  let data = getData();
+  const search = document.getElementById('searchInput').value.toLowerCase();
+  const sit = document.getElementById('filterSituacao').value;
+  const alerta = document.getElementById('filterAlerta').value;
+
+  if (search) data = data.filter(c => [c.contrato,c.contratada,c.objeto,c.setor,c.cnpj].join(' ').toLowerCase().includes(search));
+  if (sit) data = data.filter(c => c.situacao === sit);
+  if (alerta) {
+    data = data.filter(c => {
+      const d = diasRestantes(c.vigFinal);
+      if (alerta === 'critico') return d !== null && d >= 0 && d <= 20;
+      if (alerta === 'aviso') return d !== null && d > 20 && d <= 30;
+      if (alerta === 'ok') return d !== null && d > 30;
+      return true;
+    });
+  }
+
+  const total = data.length;
+  const pages = Math.max(1, Math.ceil(total / PER_PAGE));
+  if (currentPage > pages) currentPage = 1;
+  const slice = data.slice((currentPage-1)*PER_PAGE, currentPage*PER_PAGE);
+  const allData = getData();
+
+  const tbody = document.getElementById('tabelaBody');
+
+  if (!slice.length) {
+    tbody.innerHTML = `<tr><td colspan="8"><div class="empty-state"><div class="empty-icon">🔍</div><p>Nenhum contrato encontrado.</p></div></td></tr>`;
+    document.getElementById('pagination').innerHTML = '';
+    return;
+  }
+
+  tbody.innerHTML = slice.map(c => {
+    const realIdx = allData.findIndex(x => x._id === c._id);
+    const d = diasRestantes(c.vigFinal);
+    let diasClass = 'dias-ok', diasLabel = d !== null ? d + ' dias' : '—';
+    if (d === null) { diasClass = 'dias-expirado'; diasLabel = '—'; }
+    else if (d < 0) { diasClass = 'dias-expirado'; diasLabel = 'Expirado'; }
+    else if (d <= 20) diasClass = 'dias-critico';
+    else if (d <= 30) diasClass = 'dias-aviso';
+
+    const sitBadge = { Ativo:'badge-green', Finalizado:'badge-gray', Aditivado:'badge-blue', Suspenso:'badge-yellow' }[c.situacao] || 'badge-gray';
+
+    return `<tr>
+      <td><span style="font-family:var(--mono);font-size:12px;">${c.contrato || '—'}</span></td>
+      <td><div style="font-weight:500;">${c.contratada || '—'}</div><div style="font-size:11px;color:var(--text2);">${c.cnpj || ''}</div></td>
+      <td style="max-width:200px;"><div style="overflow:hidden;text-overflow:ellipsis;white-space:nowrap;" title="${c.objeto||''}">${c.objeto || '—'}</div><div style="font-size:11px;color:var(--text2);">${c.setor||''}</div></td>
+      <td><span style="font-family:var(--mono);font-size:12px;">R$ ${Number(c.valorGlobal||0).toLocaleString('pt-BR',{minimumFractionDigits:0})}</span></td>
+      <td><span style="font-family:var(--mono);font-size:12px;">${c.vigFinal ? new Date(c.vigFinal+'T12:00:00').toLocaleDateString('pt-BR') : '—'}</span></td>
+      <td><span class="dias-badge ${diasClass}">${diasLabel}</span></td>
+      <td><span class="badge ${sitBadge}">${c.situacao}</span></td>
+      <td>
+        <div style="display:flex;gap:6px;">
+          <button class="btn-sm btn-view" onclick="verDetalhe(${realIdx})">👁</button>
+          <button class="btn-sm btn-edit" onclick="editarContrato(${realIdx})">✏️</button>
+          <button class="btn-sm btn-danger-sm" onclick="excluirContrato(${realIdx})">🗑</button>
+        </div>
+      </td>
+    </tr>`;
+  }).join('');
+
+  // pagination
+  const pg = document.getElementById('pagination');
+  pg.innerHTML = `<button class="pg-btn" onclick="changePage(${currentPage-1})" ${currentPage===1?'disabled':''}>‹</button>`;
+  for(let i=1;i<=pages;i++) pg.innerHTML += `<button class="pg-btn ${i===currentPage?'active':''}" onclick="changePage(${i})">${i}</button>`;
+  pg.innerHTML += `<button class="pg-btn" onclick="changePage(${currentPage+1})" ${currentPage===pages?'disabled':''}>›</button>`;
+  pg.innerHTML += `<span style="font-size:12px;color:var(--text2);margin-left:8px;">${total} registro(s)</span>`;
+}
+
+function changePage(p) {
+  const data = getData();
+  const pages = Math.max(1, Math.ceil(data.length / PER_PAGE));
+  if (p < 1 || p > pages) return;
+  currentPage = p;
+  renderTabela();
+}
+
+function renderAlertas() {
+  const data = getData();
+
+  const criticos = data.filter(c => {
+    const d = diasRestantes(c.vigFinal);
+    return d !== null && d >= 0 && d <= 20;
+  });
+
+  const aviso = data.filter(c => {
+    const d = diasRestantes(c.vigFinal);
+    return d !== null && d > 20 && d <= 30;
+  });
+
+  const expirados = data.filter(c => {
+    const d = diasRestantes(c.vigFinal);
+    return d !== null && d < 0;
+  });
+
+  let html = '';
+
+  // Estado vazio
+  if (!criticos.length && !aviso.length && !expirados.length) {
+    html = `
+      <div class="empty-state" style="padding:60px 0;">
+        <div class="empty-icon">
+          <i class="bi bi-check-circle-fill"></i>
+        </div>
+        <p>Nenhum contrato requer atenção no momento.</p>
+      </div>
+    `;
+  }
+
+  // Seções
+  if (criticos.length)
+    html += buildAlertSection(
+      `<i class="bi bi-exclamation-octagon-fill"></i> Contratos Críticos (Vencendo em ≤ 20 dias)`,
+      criticos,
+      'danger'
+    );
+
+  if (aviso.length)
+    html += buildAlertSection(
+      `<i class="bi bi-exclamation-triangle-fill"></i> Contratos em Aviso (21-30 dias)`,
+      aviso,
+      'warning'
+    );
+
+  if (expirados.length)
+    html += buildAlertSection(
+      `<i class="bi bi-x-circle-fill"></i> Contratos Expirados`,
+      expirados,
+      'expired'
+    );
+
+  document.getElementById('alertasContent').innerHTML = html;
+}
+
+function buildAlertSection(title, items, type) {
+  const colors = { danger:'var(--danger)', warning:'var(--warning)', expired:'var(--text3)' };
+  const rows = items.map(c => {
+    const d = diasRestantes(c.vigFinal);
+    return `<div style="display:flex;align-items:center;justify-content:space-between;padding:14px 16px;border-bottom:1px solid var(--border);">
+      <div>
+        <div style="font-weight:600;font-size:13px;">${c.contratada || '—'} <span style="font-family:var(--mono);font-size:11px;color:var(--text2);">[${c.contrato||''}]</span></div>
+        <div style="font-size:12px;color:var(--text2);margin-top:2px;">${c.objeto||''} ${c.setor?'• '+c.setor:''}</div>
+      </div>
+      <div style="text-align:right;">
+        <div style="font-family:var(--mono);font-size:13px;font-weight:700;color:${colors[type]};">${d<0?'Expirado há '+Math.abs(d)+' dias':d+' dias restantes'}</div>
+        <div style="font-size:11px;color:var(--text2);">${c.vigFinal ? new Date(c.vigFinal+'T12:00:00').toLocaleDateString('pt-BR') : ''}</div>
+      </div>
+    </div>`;
+  }).join('');
+
+  return `<div style="margin-bottom:24px;">
+    <h3 style="font-size:14px;font-weight:700;margin-bottom:12px;color:${colors[type]};">${title}</h3>
+    <div style="background:var(--surface);border:1px solid var(--border);border-radius:12px;overflow:hidden;">${rows}</div>
+  </div>`;
+}
+
+/* ─── RELATÓRIOS ─── */
+function renderRelatorios() {
+  const data = getData();
+  const aditivados = data.filter(c => c.situacao==='Aditivado').length;
+  const suspensos = data.filter(c => c.situacao==='Suspenso').length;
+  const finalizados = data.filter(c => c.situacao==='Finalizado').length;
+  const mediaValor = data.length ? data.reduce((s,c)=>s+Number(c.valorGlobal||0),0)/data.length : 0;
+
+  document.getElementById('relStats').innerHTML = `
+  <div class="stat-card s-blue">
+    <div class="stat-icon">
+      <i class="bi bi-arrow-repeat"></i>
+    </div>
+    <div class="stat-label">Aditivados</div>
+    <div class="stat-value">${aditivados}</div>
+  </div>
+
+  <div class="stat-card s-green">
+    <div class="stat-icon">
+      <i class="bi bi-flag-fill"></i>
+    </div>
+    <div class="stat-label">Finalizados</div>
+    <div class="stat-value">${finalizados}</div>
+  </div>
+
+  <div class="stat-card s-yellow">
+    <div class="stat-icon">
+      <i class="bi bi-pause-circle-fill"></i>
+    </div>
+    <div class="stat-label">Suspensos</div>
+    <div class="stat-value">${suspensos}</div>
+  </div>
+
+  <div class="stat-card s-purple">
+    <div class="stat-icon">
+      <i class="bi bi-bar-chart-fill"></i>
+    </div>
+    <div class="stat-label">Valor Médio</div>
+    <div class="stat-value" style="font-size:16px;">
+      R$ ${mediaValor.toLocaleString('pt-BR',{maximumFractionDigits:0})}
+    </div>
+  </div>
+`;
+
+  // Chart setor
+  const setores = {};
+  data.forEach(c => setores[c.setor||'Não informado'] = (setores[c.setor||'Não informado']||0)+1);
+  const ctxSt = document.getElementById('chartSetor');
+  if (charts.setor) charts.setor.destroy();
+  charts.setor = new Chart(ctxSt, {
+    type:'bar',
+    data:{ labels:Object.keys(setores), datasets:[{ label:'Contratos', data:Object.values(setores), backgroundColor:'rgba(139,92,246,0.6)', borderRadius:6, borderSkipped:false }] },
+    options:{ indexAxis:'y', plugins:{legend:{display:false}}, scales:{ x:{ticks:{color:'#64748b'}, grid:{color:'rgba(255,255,255,0.05)'}}, y:{ticks:{color:'#64748b'}, grid:{display:false}} } }
+  });
+
+  // Top 10
+  const top10 = [...data].sort((a,b)=>Number(b.valorGlobal)-Number(a.valorGlobal)).slice(0,10);
+  const ctxTop = document.getElementById('chartTop10');
+  if (charts.top10) charts.top10.destroy();
+  charts.top10 = new Chart(ctxTop, {
+    type:'bar',
+    data:{ labels:top10.map(c=>c.contratada?.split(' ').slice(0,2).join(' ')||'?'), datasets:[{ label:'Valor (R$)', data:top10.map(c=>Number(c.valorGlobal||0)), backgroundColor:'rgba(6,182,212,0.6)', borderRadius:6, borderSkipped:false }] },
+    options:{ indexAxis:'y', plugins:{legend:{display:false}}, scales:{ x:{ ticks:{ color:'#64748b', callback:v=>'R$ '+Number(v).toLocaleString('pt-BR') }, grid:{color:'rgba(255,255,255,0.05)'} }, y:{ticks:{color:'#64748b'}, grid:{display:false}} } }
+  });
+}
+
+/* ─── CADASTRO ─── */
+function abrirModalCadastro() {
+  editingIndex = null;
+  document.getElementById('modalCadTitle').textContent = 'Novo Contrato';
+  document.getElementById('btnSalvarModal').textContent = 'Salvar Contrato';
+  ['fProcesso','fContrato','fContratada','fCNPJ','fObjeto','fVigInicial','fVigFinal','fValor','fResponsavel','fObs'].forEach(id => document.getElementById(id).value = '');
+  document.getElementById('fSituacao').value = 'Ativo';
+  document.getElementById('fModalidade').value = 'Pregão Eletrônico';
+  document.getElementById('fSetor').value = 'Secretaria de Saúde';
+  abrirModal('modalCad');
+}
+
+function editarContrato(idx) {
+  editingIndex = idx;
+  const c = getData()[idx];
+  document.getElementById('modalCadTitle').textContent = 'Editar Contrato';
+  document.getElementById('btnSalvarModal').textContent = 'Atualizar Contrato';
+  document.getElementById('fProcesso').value = c.processo||'';
+  document.getElementById('fContrato').value = c.contrato||'';
+  document.getElementById('fContratada').value = c.contratada||'';
+  document.getElementById('fCNPJ').value = c.cnpj||'';
+  document.getElementById('fObjeto').value = c.objeto||'';
+  document.getElementById('fVigInicial').value = c.vigInicial||'';
+  document.getElementById('fVigFinal').value = c.vigFinal||'';
+  document.getElementById('fValor').value = c.valorGlobal||'';
+  document.getElementById('fSituacao').value = c.situacao||'Ativo';
+  document.getElementById('fModalidade').value = c.modalidade||'Pregão Eletrônico';
+  document.getElementById('fSetor').value = c.setor||'Secretaria de Saúde';
+  document.getElementById('fResponsavel').value = c.responsavel||'';
+  document.getElementById('fObs').value = c.obs||'';
+  abrirModal('modalCad');
+}
+
+async function salvarContrato() {
+
+  const contrato = document.getElementById('fContrato').value.trim();
+  const contratada = document.getElementById('fContratada').value.trim();
+
+  if (!contrato || !contratada) {
+    toast('Preencha pelo menos Nº Contrato e Contratada.', 'warning');
+    return;
+  }
+
+  const obj = {
+    processo: document.getElementById('fProcesso').value.trim(),
+    contrato,
+    contratada,
+    cnpj: document.getElementById('fCNPJ').value.trim(),
+    objeto: document.getElementById('fObjeto').value.trim(),
+    vigInicial: document.getElementById('fVigInicial').value,
+    vigFinal: document.getElementById('fVigFinal').value,
+    valorGlobal: document.getElementById('fValor').value,
+    situacao: document.getElementById('fSituacao').value,
+    modalidade: document.getElementById('fModalidade').value,
+    setor: document.getElementById('fSetor').value,
+    responsavel: document.getElementById('fResponsavel').value.trim(),
+    obs: document.getElementById('fObs').value.trim(),
+    createdAt: new Date(),
+    updatedAt: new Date(),
+    userId: currentUser.uid
+  };
+
+  try {
+
+    if (editingIndex !== null) {
+      const contratoRef = doc(db, "contratos", editingIndex);
+      await updateDoc(contratoRef, {
+        ...obj,
+        updatedAt: new Date()
+      });
+
+      toast('Contrato atualizado com sucesso!', 'success');
+
+    } else {
+
+      await addDoc(collection(db, "contratos"), obj);
+
+      toast('Contrato cadastrado com sucesso!', 'success');
+    }
+
+    fecharModal('modalCad');
+    carregarContratosFirebase();
+
+  } catch (error) {
+    console.error(error);
+    toast('Erro ao salvar no Firebase.', 'error');
+  }
+}
+
+async function carregarContratosFirebase() {
+
+  const querySnapshot = await getDocs(collection(db, "contratos"));
+
+  const lista = [];
+
+  querySnapshot.forEach((docSnap) => {
+    lista.push({
+      id: docSnap.id,
+      ...docSnap.data()
+    });
+  });
+
+  localStorage.setItem('contratos_ori', JSON.stringify(lista));
+
+  renderTabela();
+  renderDashboard();
+  updateAlertBadge();
+}
+
+function excluirContrato(idx) {
+  if (!confirm('Tem certeza que deseja excluir este contrato?')) return;
+  const data = getData();
+  data.splice(idx, 1);
+  setData(data);
+  renderTabela();
+  updateAlertBadge();
+  toast('Contrato excluído.', 'info');
+}
+
+/* ─── DETALHE ─── */
+function verDetalhe(idx) {
+  const c = getData()[idx];
+  const d = diasRestantes(c.vigFinal);
+  let diasHtml = '—';
+  if (d !== null) diasHtml = d < 0 ? `<span style="color:var(--text3)">Expirado há ${Math.abs(d)} dias</span>` : `<span style="color:${d<=20?'#fca5a5':d<=30?'#fcd34d':'#6ee7b7'}">${d} dias restantes</span>`;
+
+  // Progress bar vigência
+  let progressHtml = '';
+  if (c.vigInicial && c.vigFinal) {
+    const total = new Date(c.vigFinal) - new Date(c.vigInicial);
+    const passed = new Date() - new Date(c.vigInicial);
+    const pct = Math.min(100, Math.max(0, Math.round(passed/total*100)));
+    const color = pct >= 90 ? '#ef4444' : pct >= 75 ? '#f59e0b' : '#10b981';
+    progressHtml = `<div style="margin-top:4px;font-size:11px;color:var(--text2);">${pct}% do período decorrido</div><div class="progress-bar"><div class="progress-fill" style="width:${pct}%;background:${color};"></div></div>`;
+  }
+
+  const sitBadge = {
+  Ativo:'badge-green',
+  Finalizado:'badge-gray',
+  Aditivado:'badge-blue',
+  Suspenso:'badge-yellow'
+}[c.situacao] || 'badge-gray';
+
+  document.getElementById('modalDetalheBody').innerHTML = `
+  <div class="detail-row">
+    <span class="detail-label">Nº Processo</span>
+    <span class="detail-value" style="font-family:var(--mono);">
+      ${c.processo || '—'}
+    </span>
+  </div>
+
+  <div class="detail-row">
+    <span class="detail-label">Nº Contrato</span>
+    <span class="detail-value" style="font-family:var(--mono);">
+      ${c.contrato || '—'}
+    </span>
+  </div>
+
+  <div class="detail-row">
+    <span class="detail-label">Contratada</span>
+    <span class="detail-value">
+      <strong>${c.contratada || '—'}</strong>
+    </span>
+  </div>
+
+  <div class="detail-row">
+    <span class="detail-label">CNPJ</span>
+    <span class="detail-value" style="font-family:var(--mono);">
+      ${c.cnpj || '—'}
+    </span>
+  </div>
+
+  <div class="detail-row">
+    <span class="detail-label">Objeto</span>
+    <span class="detail-value">
+      ${c.objeto || '—'}
+    </span>
+  </div>
+
+  <div class="detail-row">
+    <span class="detail-label">Setor</span>
+    <span class="detail-value">
+      ${c.setor || '—'}
+    </span>
+  </div>
+
+  <div class="detail-row">
+    <span class="detail-label">Modalidade</span>
+    <span class="detail-value">
+      ${c.modalidade || '—'}
+    </span>
+  </div>
+
+  <div class="detail-row">
+    <span class="detail-label">Vigência Inicial</span>
+    <span class="detail-value" style="font-family:var(--mono);">
+      ${c.vigInicial ? new Date(c.vigInicial + 'T12:00:00').toLocaleDateString('pt-BR') : '—'}
+    </span>
+  </div>
+
+  <div class="detail-row">
+    <span class="detail-label">Vigência Final</span>
+    <span class="detail-value">
+      ${c.vigFinal ? new Date(c.vigFinal + 'T12:00:00').toLocaleDateString('pt-BR') : '—'}
+      ${progressHtml}
+    </span>
+  </div>
+
+  <div class="detail-row">
+    <span class="detail-label">Prazo</span>
+    <span class="detail-value">
+      ${diasHtml}
+    </span>
+  </div>
+
+  <div class="detail-row">
+    <span class="detail-label">Valor Global</span>
+    <span class="detail-value" style="font-family:var(--mono);font-size:16px;font-weight:700;">
+      R$ ${Number(c.valorGlobal || 0).toLocaleString('pt-BR',{ minimumFractionDigits:2 })}
+    </span>
+  </div>
+
+  <div class="detail-row">
+    <span class="detail-label">Situação</span>
+    <span class="detail-value">
+      <span class="badge ${sitBadge}">
+        ${c.situacao}
+      </span>
+    </span>
+  </div>
+
+  <div class="detail-row">
+    <span class="detail-label">Responsável</span>
+    <span class="detail-value">
+      ${c.responsavel || '—'}
+    </span>
+  </div>
+
+  <div class="detail-row">
+    <span class="detail-label">Observações</span>
+    <span class="detail-value">
+      ${c.obs || '—'}
+    </span>
+  </div>
+
+  <div class="detail-row">
+    <span class="detail-label">Cadastrado em</span>
+    <span class="detail-value" style="font-size:11px;color:var(--text2);">
+      ${c.createdAt ? new Date(c.createdAt).toLocaleString('pt-BR') : '—'}
+    </span>
+  </div>
+`;
+  document.getElementById('btnEditDetalhe').onclick = () => { fecharModal('modalDetalhe'); editarContrato(idx); };
+  abrirModal('modalDetalhe');
+}
+
+/* ─── EXPORT ─── */
+function getFilteredExport() {
+  let data = getData();
+  const sit = document.getElementById('expSituacao').value;
+  const prazo = document.getElementById('expPrazo').value;
+  if (sit) data = data.filter(c => c.situacao===sit);
+  if (prazo) {
+    data = data.filter(c => {
+      const d = diasRestantes(c.vigFinal);
+      if (prazo==='critico') return d!==null && d>=0 && d<=20;
+      if (prazo==='aviso') return d!==null && d>20 && d<=30;
+      if (prazo==='expirado') return d!==null && d<0;
+      return true;
+    });
+  }
+  return data;
+}
+
+function exportarCSV() {
+  const data = getFilteredExport();
+  if (!data.length) { toast('Nenhum dado para exportar.','warning'); return; }
+  const headers = ['Processo','Contrato','Contratada','CNPJ','Objeto','Setor','Modalidade','Vigência Inicial','Vigência Final','Valor Global','Situação','Responsável'];
+  const rows = data.map(c => [c.processo,c.contrato,c.contratada,c.cnpj,c.objeto,c.setor,c.modalidade,c.vigInicial,c.vigFinal,c.valorGlobal,c.situacao,c.responsavel].map(v=>`"${(v||'').toString().replace(/"/g,'""')}"`).join(','));
+  const csv = [headers.join(','), ...rows].join('\n');
+  const blob = new Blob(['\ufeff'+csv], {type:'text/csv;charset=utf-8'});
+  const a = document.createElement('a'); a.href = URL.createObjectURL(blob);
+  a.download = `contratos_oriximina_${new Date().toISOString().slice(0,10)}.csv`; a.click();
+  toast(`CSV exportado com ${data.length} registro(s).`, 'success');
+}
+
+function exportarJSON() {
+  const data = getFilteredExport();
+  if (!data.length) { toast('Nenhum dado para exportar.','warning'); return; }
+  const blob = new Blob([JSON.stringify(data, null, 2)], {type:'application/json'});
+  const a = document.createElement('a'); a.href = URL.createObjectURL(blob);
+  a.download = `contratos_oriximina_${new Date().toISOString().slice(0,10)}.json`; a.click();
+  toast(`JSON exportado com ${data.length} registro(s).`, 'success');
+}
+
+function exportarHTML() {
+  const data = getFilteredExport();
+  if (!data.length) { toast('Nenhum dado para exportar.','warning'); return; }
+  const rows = data.map(c => `<tr>
+    <td>${c.contrato||''}</td>
+    <td>${c.contratada||''}</td>
+    <td>${c.objeto||''}</td>
+    <td>${c.setor||''}</td>
+    <td>${c.vigFinal ? new Date(c.vigFinal+'T12:00:00').toLocaleDateString('pt-BR') : ''}</td>
+    <td>R$ ${Number(c.valorGlobal||0).toLocaleString('pt-BR',{minimumFractionDigits:2})}</td>
+    <td>${c.situacao||''}</td>
+  </tr>`).join('');
+  const w = window.open('','_blank');
+  w.document.write(`<html><head><title>Contratos - Oriximiná</title><style>body{font-family:Arial,sans-serif;padding:20px;}table{border-collapse:collapse;width:100%;}th,td{border:1px solid #ccc;padding:8px;font-size:12px;}th{background:#1e3a8a;color:white;}tr:nth-child(even){background:#f5f5f5;}h2{color:#1e3a8a;}</style></head><body><h2>Prefeitura de Oriximiná - Gestão de Contratos</h2><p>Gerado em ${new Date().toLocaleString('pt-BR')}</p><table><thead><tr><th>Contrato</th><th>Contratada</th><th>Objeto</th><th>Setor</th><th>Venc.</th><th>Valor</th><th>Situação</th></tr></thead><tbody>${rows}</tbody></table></body></html>`);
+  w.print();
+}
+
+/* ─── MODAIS ─── */
+function abrirModal(id) {
+  document.getElementById(id).classList.add('open');
+  document.body.style.overflow = 'hidden';
+}
+function fecharModal(id) {
+  document.getElementById(id).classList.remove('open');
+  document.body.style.overflow = '';
+}
+document.addEventListener('click', e => {
+  if (e.target.classList.contains('modal-overlay')) fecharModal(e.target.id);
+});
+
+/* ─── TOAST ─── */
+function toast(msg, type='info') {
+  const icons = { success:'✅', error:'❌', warning:'⚠️', info:'ℹ️' };
+  const div = document.createElement('div');
+  div.className = `toast-item ${type}`;
+  div.innerHTML = `<span class="toast-icon">${icons[type]||'ℹ️'}</span><div class="toast-text"><strong>${msg}</strong></div><span class="toast-close" onclick="this.parentElement.remove()">✕</span>`;
+  document.getElementById('toast').appendChild(div);
+  setTimeout(() => div.style.animation = 'toastIn .3s reverse forwards', 3700);
+  setTimeout(() => div.remove(), 4000);
+}
+
+/* ─── SEED DATA ─── */
+function seedData() {
+  const seed = [
+    { processo:'001/2024', contrato:'CTR-001/2024', contratada:'Construtora Norte Pará LTDA', cnpj:'12.345.678/0001-90', objeto:'Construção de UBS no Bairro Centro', setor:'Secretaria de Saúde', modalidade:'Tomada de Preços', vigInicial:'2024-01-15', vigFinal:'2024-12-15', valorGlobal:'850000', situacao:'Ativo', responsavel:'Carlos Mendes', obs:'' },
+    { processo:'002/2024', contrato:'CTR-002/2024', contratada:'TecnoInfo Sistemas S.A.', cnpj:'98.765.432/0001-11', objeto:'Fornecimento de software de gestão escolar', setor:'Secretaria de Educação', modalidade:'Pregão Eletrônico', vigInicial:'2024-02-01', vigFinal: getFutureDate(15), valorGlobal:'120000', situacao:'Ativo', responsavel:'Ana Souza', obs:'Renovação prevista' },
+    { processo:'003/2024', contrato:'CTR-003/2024', contratada:'Pavimentar Engenharia ME', cnpj:'55.432.100/0001-55', objeto:'Pavimentação de ruas no Bairro Novo', setor:'Secretaria de Obras', modalidade:'Concorrência', vigInicial:'2024-03-10', vigFinal: getFutureDate(8), valorGlobal:'2400000', situacao:'Ativo', responsavel:'Roberto Lima', obs:'Obra em andamento' },
+    { processo:'004/2024', contrato:'CTR-004/2024', contratada:'Distribuidora de Alimentos Pará EIRELI', cnpj:'77.888.999/0001-22', objeto:'Aquisição de merenda escolar', setor:'Secretaria de Educação', modalidade:'Pregão Eletrônico', vigInicial:'2024-01-01', vigFinal: getFutureDate(25), valorGlobal:'380000', situacao:'Ativo', responsavel:'Maria Oliveira', obs:'' },
+    { processo:'005/2023', contrato:'CTR-005/2023', contratada:'Clínica Saúde Total LTDA', cnpj:'33.211.500/0001-88', objeto:'Serviços de saúde bucal para servidores', setor:'Secretaria de Administração', modalidade:'Dispensa de Licitação', vigInicial:'2023-06-01', vigFinal:'2024-05-31', valorGlobal:'95000', situacao:'Finalizado', responsavel:'João Dias', obs:'Encerrado normalmente' },
+    { processo:'006/2024', contrato:'CTR-006/2024', contratada:'Limpeza Express Serviços LTDA', cnpj:'44.555.666/0001-77', objeto:'Serviços de limpeza e conservação predial', setor:'Secretaria de Administração', modalidade:'Pregão Presencial', vigInicial:'2024-01-01', vigFinal: getFutureDate(45), valorGlobal:'180000', situacao:'Ativo', responsavel:'Paula Ferreira', obs:'' },
+    { processo:'007/2024', contrato:'CTR-007/2024', contratada:'Gráfica Municipal LTDA', cnpj:'11.222.333/0001-44', objeto:'Impressão de material gráfico institucional', setor:'Gabinete', modalidade:'Pregão Eletrônico', vigInicial:'2024-04-01', vigFinal: getFutureDate(60), valorGlobal:'45000', situacao:'Ativo', responsavel:'Lúcia Alves', obs:'' },
+    { processo:'008/2024', contrato:'CTR-008/2024', contratada:'Farmácias Bom Preço Consortium', cnpj:'66.777.888/0001-33', objeto:'Aquisição de medicamentos básicos', setor:'Secretaria de Saúde', modalidade:'Pregão Eletrônico', vigInicial:'2024-02-15', vigFinal: getFutureDate(5), valorGlobal:'620000', situacao:'Aditivado', responsavel:'Fernanda Costa', obs:'Aditivo de prazo em análise' },
+    { processo:'009/2023', contrato:'CTR-009/2023', contratada:'Transporte Escolar Amazonas ME', cnpj:'22.333.444/0001-55', objeto:'Transporte de alunos da zona rural', setor:'Secretaria de Educação', modalidade:'Pregão Presencial', vigInicial:'2023-02-01', vigFinal:'2024-01-31', valorGlobal:'320000', situacao:'Finalizado', responsavel:'Marcos Silva', obs:'' },
+    { processo:'010/2024', contrato:'CTR-010/2024', contratada:'Vigilância Ativa Segurança LTDA', cnpj:'99.100.200/0001-66', objeto:'Prestação de serviços de vigilância patrimonial', setor:'Secretaria de Administração', modalidade:'Pregão Eletrônico', vigInicial:'2024-03-01', vigFinal: getFutureDate(120), valorGlobal:'210000', situacao:'Ativo', responsavel:'Ricardo Braga', obs:'' },
+    { processo:'011/2024', contrato:'CTR-011/2024', contratada:'Assistência Social Cuidar ONG', cnpj:'88.900.100/0001-11', objeto:'Serviços socioassistenciais para famílias vulneráveis', setor:'Secretaria de Assistência Social', modalidade:'Inexigibilidade', vigInicial:'2024-01-01', vigFinal: getFutureDate(90), valorGlobal:'150000', situacao:'Ativo', responsavel:'Sandra Neves', obs:'' },
+    { processo:'012/2024', contrato:'CTR-012/2024', contratada:'Construtora Norte Pará LTDA', cnpj:'12.345.678/0001-90', objeto:'Reforma da Escola Municipal João XXIII', setor:'Secretaria de Educação', modalidade:'Tomada de Preços', vigInicial:'2024-05-01', vigFinal: getFutureDate(-10), valorGlobal:'480000', situacao:'Suspenso', responsavel:'Carlos Mendes', obs:'Suspensão por pendência documental' },
+  ];
+  seed.forEach(c => { c._id = Date.now().toString(36)+Math.random().toString(36).slice(2); c.createdAt = new Date().toISOString(); c.updatedAt = new Date().toISOString(); });
+  setData(seed);
+}
+
+function getFutureDate(days) {
+  const d = new Date();
+  d.setDate(d.getDate() + days);
+  return d.toISOString().slice(0,10);
+}
+
+
+// 🔓 Expor funções globais (necessário porque o script é module)
+window.logar = logar;
+window.logout = logout;
+
+window.goTo = goTo;
+window.changePage = changePage;
+
+window.renderTabela = renderTabela;
+
+window.abrirModal = abrirModal;
+window.fecharModal = fecharModal;
+window.abrirModalCadastro = abrirModalCadastro;
+
+window.editarContrato = editarContrato;
+window.excluirContrato = excluirContrato;
+window.verDetalhe = verDetalhe;
+window.salvarContrato = salvarContrato;
+
+window.exportarCSV = exportarCSV;
+window.exportarJSON = exportarJSON;
+window.exportarHTML = exportarHTML;
