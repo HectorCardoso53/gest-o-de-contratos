@@ -347,7 +347,7 @@ function renderTabela() {
   }
 
   tbody.innerHTML = slice.map(c => {
-    const realIdx = allData.findIndex(x => x._id === c._id);
+    const realIdx = c.id;
     const d = diasRestantes(c.vigFinal);
     let diasClass = 'dias-ok', diasLabel = d !== null ? d + ' dias' : '—';
     if (d === null) { diasClass = 'dias-expirado'; diasLabel = '—'; }
@@ -358,21 +358,62 @@ function renderTabela() {
     const sitBadge = { Ativo:'badge-green', Finalizado:'badge-gray', Aditivado:'badge-blue', Suspenso:'badge-yellow' }[c.situacao] || 'badge-gray';
 
     return `<tr>
-      <td><span style="font-family:var(--mono);font-size:12px;">${c.contrato || '—'}</span></td>
-      <td><div style="font-weight:500;">${c.contratada || '—'}</div><div style="font-size:11px;color:var(--text2);">${c.cnpj || ''}</div></td>
-      <td style="max-width:200px;"><div style="overflow:hidden;text-overflow:ellipsis;white-space:nowrap;" title="${c.objeto||''}">${c.objeto || '—'}</div><div style="font-size:11px;color:var(--text2);">${c.setor||''}</div></td>
-      <td><span style="font-family:var(--mono);font-size:12px;">R$ ${Number(c.valorGlobal||0).toLocaleString('pt-BR',{minimumFractionDigits:0})}</span></td>
-      <td><span style="font-family:var(--mono);font-size:12px;">${c.vigFinal ? new Date(c.vigFinal+'T12:00:00').toLocaleDateString('pt-BR') : '—'}</span></td>
-      <td><span class="dias-badge ${diasClass}">${diasLabel}</span></td>
-      <td><span class="badge ${sitBadge}">${c.situacao}</span></td>
-      <td>
-        <div style="display:flex;gap:6px;">
-          <button class="btn-sm btn-view" onclick="verDetalhe(${realIdx})">👁</button>
-          <button class="btn-sm btn-edit" onclick="editarContrato(${realIdx})">✏️</button>
-          <button class="btn-sm btn-danger-sm" onclick="excluirContrato(${realIdx})">🗑</button>
-        </div>
-      </td>
-    </tr>`;
+
+  <td>${c.processo || '—'}</td>
+
+  <td>
+    <span style="font-family:var(--mono);font-size:12px;">
+      ${c.contrato || '—'}
+    </span>
+  </td>
+
+  <td>${c.contratada || '—'}</td>
+
+  <td style="font-family:var(--mono);font-size:12px;">
+    ${c.cnpj || '—'}
+  </td>
+
+  <td style="max-width:200px;">
+    ${c.objeto || '—'}
+  </td>
+
+  <td>${c.setor || '—'}</td>
+
+  <td>${c.modalidade || '—'}</td>
+
+  <td>
+    ${c.vigInicial 
+      ? new Date(c.vigInicial+'T12:00:00').toLocaleDateString('pt-BR') 
+      : '—'}
+  </td>
+
+  <td>
+    ${c.vigFinal 
+      ? new Date(c.vigFinal+'T12:00:00').toLocaleDateString('pt-BR') 
+      : '—'}
+  </td>
+
+  <td>
+    R$ ${Number(c.valorGlobal||0).toLocaleString('pt-BR',{minimumFractionDigits:2})}
+  </td>
+
+  <td>
+    <span class="badge ${sitBadge}">
+      ${c.situacao}
+    </span>
+  </td>
+
+  <td>${c.responsavel || '—'}</td>
+
+  <td>
+    <div style="display:flex;gap:6px;">
+      <button class="btn-sm btn-view" onclick="verDetalhe('${realIdx}')">👁</button>
+      <button class="btn-sm btn-edit" onclick="editarContrato('${realIdx}')">✏️</button>
+      <button class="btn-sm btn-danger-sm" onclick="excluirContrato('${realIdx}')">🗑</button>
+    </div>
+  </td>
+
+</tr>`;
   }).join('');
 
   // pagination
@@ -389,6 +430,26 @@ function changePage(p) {
   if (p < 1 || p > pages) return;
   currentPage = p;
   renderTabela();
+}
+
+async function excluirContrato(id) {
+
+  if (!confirm('Tem certeza que deseja excluir este contrato?')) return;
+
+  try {
+
+    await deleteDoc(doc(db, "contratos", id));
+
+    toast('Contrato excluído com sucesso.', 'success');
+
+    carregarContratosFirebase();
+
+  } catch (error) {
+
+    console.error(error);
+    toast('Erro ao excluir contrato.', 'error');
+
+  }
 }
 
 function renderAlertas() {
@@ -548,24 +609,35 @@ function abrirModalCadastro() {
   abrirModal('modalCad');
 }
 
-function editarContrato(idx) {
-  editingIndex = idx;
-  const c = getData()[idx];
+function editarContrato(id) {
+
+  editingIndex = id;
+
+  const data = getData();
+  const c = data.find(x => x.id === id);
+
+  if (!c) {
+    toast('Contrato não encontrado.', 'error');
+    return;
+  }
+
   document.getElementById('modalCadTitle').textContent = 'Editar Contrato';
   document.getElementById('btnSalvarModal').textContent = 'Atualizar Contrato';
-  document.getElementById('fProcesso').value = c.processo||'';
-  document.getElementById('fContrato').value = c.contrato||'';
-  document.getElementById('fContratada').value = c.contratada||'';
-  document.getElementById('fCNPJ').value = c.cnpj||'';
-  document.getElementById('fObjeto').value = c.objeto||'';
-  document.getElementById('fVigInicial').value = c.vigInicial||'';
-  document.getElementById('fVigFinal').value = c.vigFinal||'';
-  document.getElementById('fValor').value = c.valorGlobal||'';
-  document.getElementById('fSituacao').value = c.situacao||'Ativo';
-  document.getElementById('fModalidade').value = c.modalidade||'Pregão Eletrônico';
-  document.getElementById('fSetor').value = c.setor||'Secretaria de Saúde';
-  document.getElementById('fResponsavel').value = c.responsavel||'';
-  document.getElementById('fObs').value = c.obs||'';
+
+  document.getElementById('fProcesso').value = c.processo || '';
+  document.getElementById('fContrato').value = c.contrato || '';
+  document.getElementById('fContratada').value = c.contratada || '';
+  document.getElementById('fCNPJ').value = c.cnpj || '';
+  document.getElementById('fObjeto').value = c.objeto || '';
+  document.getElementById('fVigInicial').value = c.vigInicial || '';
+  document.getElementById('fVigFinal').value = c.vigFinal || '';
+  document.getElementById('fValor').value = c.valorGlobal || '';
+  document.getElementById('fSituacao').value = c.situacao || 'Ativo';
+  document.getElementById('fModalidade').value = c.modalidade || 'Pregão Eletrônico';
+  document.getElementById('fSetor').value = c.setor || 'Secretaria de Saúde';
+  document.getElementById('fResponsavel').value = c.responsavel || '';
+  document.getElementById('fObs').value = c.obs || '';
+
   abrirModal('modalCad');
 }
 
@@ -645,15 +717,7 @@ async function carregarContratosFirebase() {
   updateAlertBadge();
 }
 
-function excluirContrato(idx) {
-  if (!confirm('Tem certeza que deseja excluir este contrato?')) return;
-  const data = getData();
-  data.splice(idx, 1);
-  setData(data);
-  renderTabela();
-  updateAlertBadge();
-  toast('Contrato excluído.', 'info');
-}
+
 
 /* ─── DETALHE ─── */
 function verDetalhe(idx) {
@@ -822,14 +886,7 @@ function exportarCSV() {
   toast(`CSV exportado com ${data.length} registro(s).`, 'success');
 }
 
-function exportarJSON() {
-  const data = getFilteredExport();
-  if (!data.length) { toast('Nenhum dado para exportar.','warning'); return; }
-  const blob = new Blob([JSON.stringify(data, null, 2)], {type:'application/json'});
-  const a = document.createElement('a'); a.href = URL.createObjectURL(blob);
-  a.download = `contratos_oriximina_${new Date().toISOString().slice(0,10)}.json`; a.click();
-  toast(`JSON exportado com ${data.length} registro(s).`, 'success');
-}
+
 
 function exportarHTML() {
   const data = getFilteredExport();
@@ -872,25 +929,6 @@ function toast(msg, type='info') {
   setTimeout(() => div.remove(), 4000);
 }
 
-/* ─── SEED DATA ─── */
-function seedData() {
-  const seed = [
-    { processo:'001/2024', contrato:'CTR-001/2024', contratada:'Construtora Norte Pará LTDA', cnpj:'12.345.678/0001-90', objeto:'Construção de UBS no Bairro Centro', setor:'Secretaria de Saúde', modalidade:'Tomada de Preços', vigInicial:'2024-01-15', vigFinal:'2024-12-15', valorGlobal:'850000', situacao:'Ativo', responsavel:'Carlos Mendes', obs:'' },
-    { processo:'002/2024', contrato:'CTR-002/2024', contratada:'TecnoInfo Sistemas S.A.', cnpj:'98.765.432/0001-11', objeto:'Fornecimento de software de gestão escolar', setor:'Secretaria de Educação', modalidade:'Pregão Eletrônico', vigInicial:'2024-02-01', vigFinal: getFutureDate(15), valorGlobal:'120000', situacao:'Ativo', responsavel:'Ana Souza', obs:'Renovação prevista' },
-    { processo:'003/2024', contrato:'CTR-003/2024', contratada:'Pavimentar Engenharia ME', cnpj:'55.432.100/0001-55', objeto:'Pavimentação de ruas no Bairro Novo', setor:'Secretaria de Obras', modalidade:'Concorrência', vigInicial:'2024-03-10', vigFinal: getFutureDate(8), valorGlobal:'2400000', situacao:'Ativo', responsavel:'Roberto Lima', obs:'Obra em andamento' },
-    { processo:'004/2024', contrato:'CTR-004/2024', contratada:'Distribuidora de Alimentos Pará EIRELI', cnpj:'77.888.999/0001-22', objeto:'Aquisição de merenda escolar', setor:'Secretaria de Educação', modalidade:'Pregão Eletrônico', vigInicial:'2024-01-01', vigFinal: getFutureDate(25), valorGlobal:'380000', situacao:'Ativo', responsavel:'Maria Oliveira', obs:'' },
-    { processo:'005/2023', contrato:'CTR-005/2023', contratada:'Clínica Saúde Total LTDA', cnpj:'33.211.500/0001-88', objeto:'Serviços de saúde bucal para servidores', setor:'Secretaria de Administração', modalidade:'Dispensa de Licitação', vigInicial:'2023-06-01', vigFinal:'2024-05-31', valorGlobal:'95000', situacao:'Finalizado', responsavel:'João Dias', obs:'Encerrado normalmente' },
-    { processo:'006/2024', contrato:'CTR-006/2024', contratada:'Limpeza Express Serviços LTDA', cnpj:'44.555.666/0001-77', objeto:'Serviços de limpeza e conservação predial', setor:'Secretaria de Administração', modalidade:'Pregão Presencial', vigInicial:'2024-01-01', vigFinal: getFutureDate(45), valorGlobal:'180000', situacao:'Ativo', responsavel:'Paula Ferreira', obs:'' },
-    { processo:'007/2024', contrato:'CTR-007/2024', contratada:'Gráfica Municipal LTDA', cnpj:'11.222.333/0001-44', objeto:'Impressão de material gráfico institucional', setor:'Gabinete', modalidade:'Pregão Eletrônico', vigInicial:'2024-04-01', vigFinal: getFutureDate(60), valorGlobal:'45000', situacao:'Ativo', responsavel:'Lúcia Alves', obs:'' },
-    { processo:'008/2024', contrato:'CTR-008/2024', contratada:'Farmácias Bom Preço Consortium', cnpj:'66.777.888/0001-33', objeto:'Aquisição de medicamentos básicos', setor:'Secretaria de Saúde', modalidade:'Pregão Eletrônico', vigInicial:'2024-02-15', vigFinal: getFutureDate(5), valorGlobal:'620000', situacao:'Aditivado', responsavel:'Fernanda Costa', obs:'Aditivo de prazo em análise' },
-    { processo:'009/2023', contrato:'CTR-009/2023', contratada:'Transporte Escolar Amazonas ME', cnpj:'22.333.444/0001-55', objeto:'Transporte de alunos da zona rural', setor:'Secretaria de Educação', modalidade:'Pregão Presencial', vigInicial:'2023-02-01', vigFinal:'2024-01-31', valorGlobal:'320000', situacao:'Finalizado', responsavel:'Marcos Silva', obs:'' },
-    { processo:'010/2024', contrato:'CTR-010/2024', contratada:'Vigilância Ativa Segurança LTDA', cnpj:'99.100.200/0001-66', objeto:'Prestação de serviços de vigilância patrimonial', setor:'Secretaria de Administração', modalidade:'Pregão Eletrônico', vigInicial:'2024-03-01', vigFinal: getFutureDate(120), valorGlobal:'210000', situacao:'Ativo', responsavel:'Ricardo Braga', obs:'' },
-    { processo:'011/2024', contrato:'CTR-011/2024', contratada:'Assistência Social Cuidar ONG', cnpj:'88.900.100/0001-11', objeto:'Serviços socioassistenciais para famílias vulneráveis', setor:'Secretaria de Assistência Social', modalidade:'Inexigibilidade', vigInicial:'2024-01-01', vigFinal: getFutureDate(90), valorGlobal:'150000', situacao:'Ativo', responsavel:'Sandra Neves', obs:'' },
-    { processo:'012/2024', contrato:'CTR-012/2024', contratada:'Construtora Norte Pará LTDA', cnpj:'12.345.678/0001-90', objeto:'Reforma da Escola Municipal João XXIII', setor:'Secretaria de Educação', modalidade:'Tomada de Preços', vigInicial:'2024-05-01', vigFinal: getFutureDate(-10), valorGlobal:'480000', situacao:'Suspenso', responsavel:'Carlos Mendes', obs:'Suspensão por pendência documental' },
-  ];
-  seed.forEach(c => { c._id = Date.now().toString(36)+Math.random().toString(36).slice(2); c.createdAt = new Date().toISOString(); c.updatedAt = new Date().toISOString(); });
-  setData(seed);
-}
 
 function getFutureDate(days) {
   const d = new Date();
@@ -918,5 +956,4 @@ window.verDetalhe = verDetalhe;
 window.salvarContrato = salvarContrato;
 
 window.exportarCSV = exportarCSV;
-window.exportarJSON = exportarJSON;
 window.exportarHTML = exportarHTML;

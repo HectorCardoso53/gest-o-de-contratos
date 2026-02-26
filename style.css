@@ -283,6 +283,10 @@ body {
   to { transform: rotate(360deg); }
 }
 
+.table-wrap {
+  overflow-x: auto;
+}
+
 .topbar {
   padding: 20px 32px;
   border-bottom: 1px solid var(--border);
