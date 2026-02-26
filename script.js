@@ -39,7 +39,7 @@ let editingIndex = null;
 let currentPage = 1;
 const PER_PAGE = 12;
 let charts = {};
-
+let contratos = [];
 
 onAuthStateChanged(auth, (user) => {
   if (user) {
@@ -77,9 +77,6 @@ document.addEventListener("DOMContentLoaded", () => {
 
 });
 
-
-function getData() { return JSON.parse(localStorage.getItem('contratos_ori') || '[]'); }
-function setData(d) { localStorage.setItem('contratos_ori', JSON.stringify(d)); }
 
 function diasRestantes(data) {
   if (!data) return null;
@@ -139,7 +136,6 @@ function initApp() {
   setInterval(updateTopDate, 30000);
   goTo('dashboard');
   // seed sample data
-  if (!getData().length) seedData();
 }
 
 function updateTopDate() {
@@ -174,7 +170,7 @@ function goTo(page) {
 
 /* ─── DASHBOARD ─── */
 function renderDashboard() {
-  const data = getData();
+  const data = contratos;
   const hoje = new Date();
 
   const total = data.length;
@@ -251,7 +247,7 @@ function renderDashboard() {
 }
 
 function updateAlertBadge() {
-  const data = getData();
+  const data = contratos;
   const n = data.filter(c => { const d = diasRestantes(c.vigFinal); return d !== null && d >= 0 && d <= 30; }).length;
   const badge = document.getElementById('alertBadge');
   if (n > 0) { badge.style.display = 'inline-block'; badge.textContent = n; }
@@ -315,7 +311,7 @@ function renderChartValores(data) {
 
 /* ─── TABELA ─── */
 function renderTabela() {
-  let data = getData();
+  let data = contratos;
   const search = document.getElementById('searchInput').value.toLowerCase();
   const sit = document.getElementById('filterSituacao').value;
   const alerta = document.getElementById('filterAlerta').value;
@@ -336,7 +332,6 @@ function renderTabela() {
   const pages = Math.max(1, Math.ceil(total / PER_PAGE));
   if (currentPage > pages) currentPage = 1;
   const slice = data.slice((currentPage-1)*PER_PAGE, currentPage*PER_PAGE);
-  const allData = getData();
 
   const tbody = document.getElementById('tabelaBody');
 
@@ -366,6 +361,8 @@ function renderTabela() {
       ${c.contrato || '—'}
     </span>
   </td>
+
+   <td>${c.responsavel || '—'}</td>
 
   <td>${c.contratada || '—'}</td>
 
@@ -403,8 +400,6 @@ function renderTabela() {
     </span>
   </td>
 
-  <td>${c.responsavel || '—'}</td>
-
   <td>
     <div style="display:flex;gap:6px;">
       <button class="btn-sm btn-view" onclick="verDetalhe('${realIdx}')">👁</button>
@@ -425,7 +420,7 @@ function renderTabela() {
 }
 
 function changePage(p) {
-  const data = getData();
+ const data = contratos;
   const pages = Math.max(1, Math.ceil(data.length / PER_PAGE));
   if (p < 1 || p > pages) return;
   currentPage = p;
@@ -453,7 +448,7 @@ async function excluirContrato(id) {
 }
 
 function renderAlertas() {
-  const data = getData();
+ const data = contratos;
 
   const criticos = data.filter(c => {
     const d = diasRestantes(c.vigFinal);
@@ -533,7 +528,7 @@ function buildAlertSection(title, items, type) {
 
 /* ─── RELATÓRIOS ─── */
 function renderRelatorios() {
-  const data = getData();
+ const data = contratos;
   const aditivados = data.filter(c => c.situacao==='Aditivado').length;
   const suspensos = data.filter(c => c.situacao==='Suspenso').length;
   const finalizados = data.filter(c => c.situacao==='Finalizado').length;
@@ -613,7 +608,7 @@ function editarContrato(id) {
 
   editingIndex = id;
 
-  const data = getData();
+  const data = contratos;
   const c = data.find(x => x.id === id);
 
   if (!c) {
@@ -701,16 +696,14 @@ async function carregarContratosFirebase() {
 
   const querySnapshot = await getDocs(collection(db, "contratos"));
 
-  const lista = [];
+  contratos = [];
 
   querySnapshot.forEach((docSnap) => {
-    lista.push({
+    contratos.push({
       id: docSnap.id,
       ...docSnap.data()
     });
   });
-
-  localStorage.setItem('contratos_ori', JSON.stringify(lista));
 
   renderTabela();
   renderDashboard();
@@ -718,147 +711,65 @@ async function carregarContratosFirebase() {
 }
 
 
-
 /* ─── DETALHE ─── */
-function verDetalhe(idx) {
-  const c = getData()[idx];
-  const d = diasRestantes(c.vigFinal);
-  let diasHtml = '—';
-  if (d !== null) diasHtml = d < 0 ? `<span style="color:var(--text3)">Expirado há ${Math.abs(d)} dias</span>` : `<span style="color:${d<=20?'#fca5a5':d<=30?'#fcd34d':'#6ee7b7'}">${d} dias restantes</span>`;
+function verDetalhe(id) {
 
-  // Progress bar vigência
-  let progressHtml = '';
-  if (c.vigInicial && c.vigFinal) {
-    const total = new Date(c.vigFinal) - new Date(c.vigInicial);
-    const passed = new Date() - new Date(c.vigInicial);
-    const pct = Math.min(100, Math.max(0, Math.round(passed/total*100)));
-    const color = pct >= 90 ? '#ef4444' : pct >= 75 ? '#f59e0b' : '#10b981';
-    progressHtml = `<div style="margin-top:4px;font-size:11px;color:var(--text2);">${pct}% do período decorrido</div><div class="progress-bar"><div class="progress-fill" style="width:${pct}%;background:${color};"></div></div>`;
+ const data = contratos;
+  const c = data.find(x => x.id === id);
+
+  if (!c) {
+    toast('Contrato não encontrado.', 'error');
+    return;
   }
 
-  const sitBadge = {
-  Ativo:'badge-green',
-  Finalizado:'badge-gray',
-  Aditivado:'badge-blue',
-  Suspenso:'badge-yellow'
-}[c.situacao] || 'badge-gray';
+  const d = diasRestantes(c.vigFinal);
+  let diasHtml = '—';
+
+  if (d !== null)
+    diasHtml = d < 0
+      ? `<span style="color:var(--text3)">Expirado há ${Math.abs(d)} dias</span>`
+      : `<span style="color:${d<=20?'#fca5a5':d<=30?'#fcd34d':'#6ee7b7'}">${d} dias restantes</span>`;
 
   document.getElementById('modalDetalheBody').innerHTML = `
-  <div class="detail-row">
-    <span class="detail-label">Nº Processo</span>
-    <span class="detail-value" style="font-family:var(--mono);">
-      ${c.processo || '—'}
-    </span>
-  </div>
+    <div class="detail-row">
+      <span class="detail-label">Nº Processo</span>
+      <span class="detail-value">${c.processo || '—'}</span>
+    </div>
 
-  <div class="detail-row">
-    <span class="detail-label">Nº Contrato</span>
-    <span class="detail-value" style="font-family:var(--mono);">
-      ${c.contrato || '—'}
-    </span>
-  </div>
+    <div class="detail-row">
+      <span class="detail-label">Nº Contrato</span>
+      <span class="detail-value">${c.contrato || '—'}</span>
+    </div>
 
-  <div class="detail-row">
-    <span class="detail-label">Contratada</span>
-    <span class="detail-value">
-      <strong>${c.contratada || '—'}</strong>
-    </span>
-  </div>
+    <div class="detail-row">
+      <span class="detail-label">Contratada</span>
+      <span class="detail-value"><strong>${c.contratada || '—'}</strong></span>
+    </div>
 
-  <div class="detail-row">
-    <span class="detail-label">CNPJ</span>
-    <span class="detail-value" style="font-family:var(--mono);">
-      ${c.cnpj || '—'}
-    </span>
-  </div>
-
-  <div class="detail-row">
-    <span class="detail-label">Objeto</span>
-    <span class="detail-value">
-      ${c.objeto || '—'}
-    </span>
-  </div>
-
-  <div class="detail-row">
-    <span class="detail-label">Setor</span>
-    <span class="detail-value">
-      ${c.setor || '—'}
-    </span>
-  </div>
-
-  <div class="detail-row">
-    <span class="detail-label">Modalidade</span>
-    <span class="detail-value">
-      ${c.modalidade || '—'}
-    </span>
-  </div>
-
-  <div class="detail-row">
-    <span class="detail-label">Vigência Inicial</span>
-    <span class="detail-value" style="font-family:var(--mono);">
-      ${c.vigInicial ? new Date(c.vigInicial + 'T12:00:00').toLocaleDateString('pt-BR') : '—'}
-    </span>
-  </div>
-
-  <div class="detail-row">
-    <span class="detail-label">Vigência Final</span>
-    <span class="detail-value">
-      ${c.vigFinal ? new Date(c.vigFinal + 'T12:00:00').toLocaleDateString('pt-BR') : '—'}
-      ${progressHtml}
-    </span>
-  </div>
-
-  <div class="detail-row">
-    <span class="detail-label">Prazo</span>
-    <span class="detail-value">
-      ${diasHtml}
-    </span>
-  </div>
-
-  <div class="detail-row">
-    <span class="detail-label">Valor Global</span>
-    <span class="detail-value" style="font-family:var(--mono);font-size:16px;font-weight:700;">
-      R$ ${Number(c.valorGlobal || 0).toLocaleString('pt-BR',{ minimumFractionDigits:2 })}
-    </span>
-  </div>
-
-  <div class="detail-row">
-    <span class="detail-label">Situação</span>
-    <span class="detail-value">
-      <span class="badge ${sitBadge}">
-        ${c.situacao}
+    <div class="detail-row">
+      <span class="detail-label">Valor Global</span>
+      <span class="detail-value">
+        R$ ${Number(c.valorGlobal || 0).toLocaleString('pt-BR',{minimumFractionDigits:2})}
       </span>
-    </span>
-  </div>
+    </div>
 
-  <div class="detail-row">
-    <span class="detail-label">Responsável</span>
-    <span class="detail-value">
-      ${c.responsavel || '—'}
-    </span>
-  </div>
+    <div class="detail-row">
+      <span class="detail-label">Prazo</span>
+      <span class="detail-value">${diasHtml}</span>
+    </div>
+  `;
 
-  <div class="detail-row">
-    <span class="detail-label">Observações</span>
-    <span class="detail-value">
-      ${c.obs || '—'}
-    </span>
-  </div>
+  document.getElementById('btnEditDetalhe').onclick = () => {
+    fecharModal('modalDetalhe');
+    editarContrato(id);
+  };
 
-  <div class="detail-row">
-    <span class="detail-label">Cadastrado em</span>
-    <span class="detail-value" style="font-size:11px;color:var(--text2);">
-      ${c.createdAt ? new Date(c.createdAt).toLocaleString('pt-BR') : '—'}
-    </span>
-  </div>
-`;
-  document.getElementById('btnEditDetalhe').onclick = () => { fecharModal('modalDetalhe'); editarContrato(idx); };
   abrirModal('modalDetalhe');
 }
 
 /* ─── EXPORT ─── */
 function getFilteredExport() {
-  let data = getData();
+  let data = contratos;
   const sit = document.getElementById('expSituacao').value;
   const prazo = document.getElementById('expPrazo').value;
   if (sit) data = data.filter(c => c.situacao===sit);
