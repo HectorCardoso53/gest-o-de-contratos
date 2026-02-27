@@ -284,6 +284,28 @@ body {
 }
 
 .table-wrap {
+  background: var(--surface);
+  border: 1px solid var(--border);
+  border-radius: 14px;
+  overflow-x: auto;
+  overflow-y: hidden;
+}
+
+.table-wrap table {
+  min-width: 1400px; /* força largura mínima */
+  border-collapse: collapse;
+}
+
+.table-wrap::-webkit-scrollbar {
+  height: 8px;
+}
+
+.table-wrap::-webkit-scrollbar-thumb {
+  background: rgba(100,116,139,0.4);
+  border-radius: 10px;
+}
+
+.table-wrap {
   overflow-x: auto;
 }
 
@@ -414,12 +436,13 @@ body {
 .btn-edit { background: rgba(59,130,246,0.15); color: #93c5fd; border: 1px solid rgba(59,130,246,0.3); }
 .btn-view { background: rgba(139,92,246,0.15); color: #c4b5fd; border: 1px solid rgba(139,92,246,0.3); }
 
-.table-wrap {
-  background: var(--surface); border: 1px solid var(--border);
-  border-radius: 14px; overflow: hidden;
-}
 
-table { width: 100%; border-collapse: collapse; }
+
+table {
+  width: max-content;
+  min-width: 1500px;
+  border-collapse: collapse;
+}
 thead { background: var(--surface2); }
 th {
   padding: 13px 16px; text-align: left;

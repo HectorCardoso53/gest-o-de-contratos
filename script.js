@@ -770,18 +770,35 @@ function verDetalhe(id) {
 /* ─── EXPORT ─── */
 function getFilteredExport() {
   let data = contratos;
+
   const sit = document.getElementById('expSituacao').value;
   const prazo = document.getElementById('expPrazo').value;
-  if (sit) data = data.filter(c => c.situacao===sit);
+  const mes = document.getElementById('expMes').value;
+
+  if (sit) {
+    data = data.filter(c => c.situacao === sit);
+  }
+
   if (prazo) {
     data = data.filter(c => {
       const d = diasRestantes(c.vigFinal);
-      if (prazo==='critico') return d!==null && d>=0 && d<=20;
-      if (prazo==='aviso') return d!==null && d>20 && d<=30;
-      if (prazo==='expirado') return d!==null && d<0;
+
+      if (prazo === 'critico') return d !== null && d >= 0 && d <= 20;
+      if (prazo === 'aviso') return d !== null && d > 20 && d <= 30;
+      if (prazo === 'expirado') return d !== null && d < 0;
+
       return true;
     });
   }
+
+  // 🔥 NOVO FILTRO POR MÊS
+  if (mes) {
+    data = data.filter(c => {
+      if (!c.vigFinal) return false;
+      return c.vigFinal.substring(5, 7) === mes;
+    });
+  }
+
   return data;
 }
 
