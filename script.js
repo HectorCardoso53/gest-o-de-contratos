@@ -595,12 +595,18 @@ function renderRelatorios() {
 /* ─── CADASTRO ─── */
 function abrirModalCadastro() {
   editingIndex = null;
+
   document.getElementById('modalCadTitle').textContent = 'Novo Contrato';
   document.getElementById('btnSalvarModal').textContent = 'Salvar Contrato';
-  ['fProcesso','fContrato','fContratada','fCNPJ','fObjeto','fVigInicial','fVigFinal','fValor','fResponsavel','fObs'].forEach(id => document.getElementById(id).value = '');
+
+  ['fProcesso','fContrato','fContratada','fCNPJ','fObjeto','fVigInicial','fVigFinal','fValor','fResponsavel','fObs']
+    .forEach(id => document.getElementById(id).value = '');
+
   document.getElementById('fSituacao').value = 'Ativo';
   document.getElementById('fModalidade').value = 'Pregão Eletrônico';
-  document.getElementById('fSetor').value = 'Secretaria de Saúde';
+
+  document.getElementById('fSetor').value = ''; // ✔ CORRETO
+
   abrirModal('modalCad');
 }
 
