@@ -1,24 +1,21 @@
 // 🔥 Firebase
 import { initializeApp } from "https://www.gstatic.com/firebasejs/10.12.2/firebase-app.js";
-import { 
-  getAuth, 
-  signInWithEmailAndPassword, 
+import {
+  getAuth,
+  signInWithEmailAndPassword,
   onAuthStateChanged,
-  signOut
+  signOut,
 } from "https://www.gstatic.com/firebasejs/10.12.2/firebase-auth.js";
 
-import { 
-  getFirestore, 
-  collection, 
-  addDoc, 
-  getDocs, 
-  updateDoc, 
-  deleteDoc, 
-  doc 
+import {
+  getFirestore,
+  collection,
+  addDoc,
+  getDocs,
+  updateDoc,
+  deleteDoc,
+  doc,
 } from "https://www.gstatic.com/firebasejs/10.12.2/firebase-firestore.js";
-
-
-
 
 const firebaseConfig = {
   apiKey: "AIzaSyAn4YFjsLH2NsbXxZMTJtNIQIV0oxXi2cM",
@@ -26,7 +23,7 @@ const firebaseConfig = {
   projectId: "gestao-de-contratos-4ad66",
   storageBucket: "gestao-de-contratos-4ad66.firebasestorage.app",
   messagingSenderId: "528807844859",
-  appId: "1:528807844859:web:2fcfae3f1e6f1e51bec95e"
+  appId: "1:528807844859:web:2fcfae3f1e6f1e51bec95e",
 };
 
 const app = initializeApp(firebaseConfig);
@@ -45,52 +42,44 @@ onAuthStateChanged(auth, (user) => {
   if (user) {
     currentUser = user;
 
-    document.getElementById('loginScreen').style.display = 'none';
-    document.getElementById('app').style.display = 'block';
+    document.getElementById("loginScreen").style.display = "none";
+    document.getElementById("app").style.display = "block";
 
-    document.getElementById('userName').textContent = user.email;
-    document.getElementById('userRole').textContent = 'Usuário';
-    document.getElementById('userAvatar').textContent = user.email.charAt(0).toUpperCase();
+    document.getElementById("userName").textContent = user.email;
+    document.getElementById("userRole").textContent = "Usuário";
+    document.getElementById("userAvatar").textContent = user.email
+      .charAt(0)
+      .toUpperCase();
 
     initApp();
     carregarContratosFirebase();
   } else {
-    document.getElementById('app').style.display = 'none';
-    document.getElementById('loginScreen').style.display = 'flex';
+    document.getElementById("app").style.display = "none";
+    document.getElementById("loginScreen").style.display = "flex";
   }
 });
 
-
 // Esperar DOM carregar
 document.addEventListener("DOMContentLoaded", () => {
+  document.getElementById("btnLogin").addEventListener("click", logar);
 
-  document.getElementById("btnLogin")
-    .addEventListener("click", logar);
+  document.getElementById("lgPass").addEventListener("keydown", (e) => {
+    if (e.key === "Enter") logar();
+  });
 
-  document.getElementById("lgPass")
-    .addEventListener("keydown", (e) => {
-      if (e.key === "Enter") logar();
-    });
-
-  document.querySelector(".logout-btn")
-    .addEventListener("click", logout);
-
+  document.querySelector(".logout-btn").addEventListener("click", logout);
 });
-
 
 function diasRestantes(data) {
   if (!data) return null;
   return Math.ceil((new Date(data) - new Date()) / 86400000);
 }
 
-
-
 function logout() {
   signOut(auth);
 }
 
 async function logar() {
-
   const email = document.getElementById("lgUser").value.trim();
   const senha = document.getElementById("lgPass").value;
 
@@ -106,24 +95,23 @@ async function logar() {
   }
 
   try {
-
     btn.disabled = true;
-    btnText.innerHTML = '<i class="bi bi-arrow-repeat spin"></i> Autenticando...';
-    progress.style.display = 'block';
-    bar.style.width = '60%';
+    btnText.innerHTML =
+      '<i class="bi bi-arrow-repeat spin"></i> Autenticando...';
+    progress.style.display = "block";
+    bar.style.width = "60%";
 
     await signInWithEmailAndPassword(auth, email, senha);
 
-    bar.style.width = '100%';
-
+    bar.style.width = "100%";
   } catch (error) {
-
     btn.disabled = false;
-    btnText.innerHTML = 'Entrar no Sistema';
-    progress.style.display = 'none';
-    bar.style.width = '0%';
+    btnText.innerHTML = "Entrar no Sistema";
+    progress.style.display = "none";
+    bar.style.width = "0%";
 
-    document.getElementById("lgError").textContent = "Email ou senha inválidos.";
+    document.getElementById("lgError").textContent =
+      "Email ou senha inválidos.";
     document.getElementById("lgError").style.display = "block";
 
     console.error(error);
@@ -134,37 +122,71 @@ async function logar() {
 function initApp() {
   updateTopDate();
   setInterval(updateTopDate, 30000);
-  goTo('dashboard');
+  goTo("dashboard");
   // seed sample data
 }
 
 function updateTopDate() {
   const now = new Date();
-  document.getElementById('topDate').textContent = now.toLocaleDateString('pt-BR', { weekday:'short', day:'2-digit', month:'short', year:'numeric' });
+  document.getElementById("topDate").textContent = now.toLocaleDateString(
+    "pt-BR",
+    { weekday: "short", day: "2-digit", month: "short", year: "numeric" },
+  );
 }
 
 /* ─── NAVIGATION ─── */
 const PAGES = {
-  dashboard:  { el:'pageDashboard',  title:'Dashboard',    subtitle:'Visão geral do sistema',     nav:0 },
-  contratos:  { el:'pageContratos',  title:'Contratos',    subtitle:'Lista de todos os contratos', nav:1 },
-  alertas:    { el:'pageAlertas',    title:'Alertas',      subtitle:'Contratos próximos ao vencimento', nav:2 },
-  relatorios: { el:'pageRelatorios', title:'Relatórios',   subtitle:'Análise e estatísticas',      nav:3 },
-  exportar:   { el:'pageExportar',   title:'Exportar',     subtitle:'Exporte dados do sistema',    nav:4 },
+  dashboard: {
+    el: "pageDashboard",
+    title: "Dashboard",
+    subtitle: "Visão geral do sistema",
+    nav: 0,
+  },
+  contratos: {
+    el: "pageContratos",
+    title: "Contratos",
+    subtitle: "Lista de todos os contratos",
+    nav: 1,
+  },
+  alertas: {
+    el: "pageAlertas",
+    title: "Alertas",
+    subtitle: "Contratos próximos ao vencimento",
+    nav: 2,
+  },
+  relatorios: {
+    el: "pageRelatorios",
+    title: "Relatórios",
+    subtitle: "Análise e estatísticas",
+    nav: 3,
+  },
+  exportar: {
+    el: "pageExportar",
+    title: "Exportar",
+    subtitle: "Exporte dados do sistema",
+    nav: 4,
+  },
 };
 
 function goTo(page) {
-  document.querySelectorAll('.page').forEach(p => p.classList.remove('active'));
-  document.querySelectorAll('.nav-item').forEach(n => n.classList.remove('active'));
+  document
+    .querySelectorAll(".page")
+    .forEach((p) => p.classList.remove("active"));
+  document
+    .querySelectorAll(".nav-item")
+    .forEach((n) => n.classList.remove("active"));
   const cfg = PAGES[page];
-  document.getElementById(cfg.el).classList.add('active');
-  document.querySelectorAll('.nav-item')[cfg.nav].classList.add('active');
-  document.getElementById('pageTitle').textContent = cfg.title;
-  document.getElementById('pageSubtitle').textContent = cfg.subtitle;
+  document.getElementById(cfg.el).classList.add("active");
+  document.querySelectorAll(".nav-item")[cfg.nav].classList.add("active");
+  document.getElementById("pageTitle").textContent = cfg.title;
+  document.getElementById("pageSubtitle").textContent = cfg.subtitle;
 
-  if (page === 'dashboard') renderDashboard();
-  if (page === 'contratos') { renderTabela(); }
-  if (page === 'alertas') renderAlertas();
-  if (page === 'relatorios') renderRelatorios();
+  if (page === "dashboard") renderDashboard();
+  if (page === "contratos") {
+    renderTabela();
+  }
+  if (page === "alertas") renderAlertas();
+  if (page === "relatorios") renderRelatorios();
   updateAlertBadge();
 }
 
@@ -174,17 +196,26 @@ function renderDashboard() {
   const hoje = new Date();
 
   const total = data.length;
-  const ativos = data.filter(c => c.situacao === 'Ativo').length;
-  const criticos = data.filter(c => { const d = diasRestantes(c.vigFinal); return d !== null && d >= 0 && d <= 20; }).length;
-  const aviso = data.filter(c => { const d = diasRestantes(c.vigFinal); return d !== null && d > 20 && d <= 30; }).length;
-  const expirados = data.filter(c => { const d = diasRestantes(c.vigFinal); return d !== null && d < 0; }).length;
+  const ativos = data.filter((c) => c.situacao === "Ativo").length;
+  const criticos = data.filter((c) => {
+    const d = diasRestantes(c.vigFinal);
+    return d !== null && d >= 0 && d <= 20;
+  }).length;
+  const aviso = data.filter((c) => {
+    const d = diasRestantes(c.vigFinal);
+    return d !== null && d > 20 && d <= 30;
+  }).length;
+  const expirados = data.filter((c) => {
+    const d = diasRestantes(c.vigFinal);
+    return d !== null && d < 0;
+  }).length;
   const valorTotal = data.reduce((s, c) => s + Number(c.valorGlobal || 0), 0);
 
   // alert banner
-  const bannerWrap = document.getElementById('alertBannerWrapper');
-  bannerWrap.innerHTML = '';
+  const bannerWrap = document.getElementById("alertBannerWrapper");
+  bannerWrap.innerHTML = "";
   if (criticos > 0) {
-  bannerWrap.innerHTML = `
+    bannerWrap.innerHTML = `
     <div class="alert-banner">
       <span class="alert-banner-icon">
         <i class="bi bi-exclamation-octagon-fill"></i>
@@ -195,9 +226,9 @@ function renderDashboard() {
       </div>
     </div>
   `;
-}
+  }
 
-  document.getElementById('statsGrid').innerHTML = `
+  document.getElementById("statsGrid").innerHTML = `
   <div class="stat-card s-blue">
     <div class="stat-icon"><i class="bi bi-file-earmark-text"></i></div>
     <div class="stat-label">Total</div>
@@ -209,7 +240,7 @@ function renderDashboard() {
     <div class="stat-icon"><i class="bi bi-check-circle"></i></div>
     <div class="stat-label">Ativos</div>
     <div class="stat-value">${ativos}</div>
-    <div class="stat-sub">${total ? Math.round(ativos/total*100) : 0}% do total</div>
+    <div class="stat-sub">${total ? Math.round((ativos / total) * 100) : 0}% do total</div>
   </div>
 
   <div class="stat-card s-red">
@@ -229,7 +260,7 @@ function renderDashboard() {
   <div class="stat-card s-purple">
     <div class="stat-icon"><i class="bi bi-cash-stack"></i></div>
     <div class="stat-label">Valor Total</div>
-    <div class="stat-value" style="font-size:18px;">R$ ${valorTotal.toLocaleString('pt-BR',{minimumFractionDigits:0})}</div>
+    <div class="stat-value" style="font-size:18px;">R$ ${valorTotal.toLocaleString("pt-BR", { minimumFractionDigits: 0 })}</div>
     <div class="stat-sub">Todos os contratos</div>
   </div>
 
@@ -248,82 +279,151 @@ function renderDashboard() {
 
 function updateAlertBadge() {
   const data = contratos;
-  const n = data.filter(c => { const d = diasRestantes(c.vigFinal); return d !== null && d >= 0 && d <= 30; }).length;
-  const badge = document.getElementById('alertBadge');
-  if (n > 0) { badge.style.display = 'inline-block'; badge.textContent = n; }
-  else badge.style.display = 'none';
+  const n = data.filter((c) => {
+    const d = diasRestantes(c.vigFinal);
+    return d !== null && d >= 0 && d <= 30;
+  }).length;
+  const badge = document.getElementById("alertBadge");
+  if (n > 0) {
+    badge.style.display = "inline-block";
+    badge.textContent = n;
+  } else badge.style.display = "none";
 }
 
 function renderChartSituacao(data) {
-  const ctx = document.getElementById('chartSituacao');
+  const ctx = document.getElementById("chartSituacao");
   if (charts.sit) charts.sit.destroy();
   const counts = {};
-  data.forEach(c => counts[c.situacao] = (counts[c.situacao] || 0) + 1);
+  data.forEach((c) => (counts[c.situacao] = (counts[c.situacao] || 0) + 1));
   charts.sit = new Chart(ctx, {
-    type: 'doughnut',
+    type: "doughnut",
     data: {
       labels: Object.keys(counts),
-      datasets: [{ data: Object.values(counts), backgroundColor: ['#3b82f6','#10b981','#8b5cf6','#f59e0b'], borderWidth:0, hoverOffset:6 }]
+      datasets: [
+        {
+          data: Object.values(counts),
+          backgroundColor: ["#3b82f6", "#10b981", "#8b5cf6", "#f59e0b"],
+          borderWidth: 0,
+          hoverOffset: 6,
+        },
+      ],
     },
-    options: { plugins:{ legend:{ labels:{ color:'#94a3b8', font:{family:'Sora'} } } }, animation:{ animateScale:true } }
+    options: {
+      plugins: {
+        legend: { labels: { color: "#94a3b8", font: { family: "Sora" } } },
+      },
+      animation: { animateScale: true },
+    },
   });
 }
 
 function renderChartVencimento(data) {
-  const ctx = document.getElementById('chartVencimento');
+  const ctx = document.getElementById("chartVencimento");
   if (charts.venc) charts.venc.destroy();
   const months = {};
-  data.forEach(c => {
+  data.forEach((c) => {
     if (!c.vigFinal) return;
-    const m = c.vigFinal.substring(0,7);
+    const m = c.vigFinal.substring(0, 7);
     months[m] = (months[m] || 0) + 1;
   });
   const sorted = Object.keys(months).sort();
   charts.venc = new Chart(ctx, {
-    type: 'bar',
+    type: "bar",
     data: {
-      labels: sorted.map(m => { const [y,mo] = m.split('-'); return new Date(y,mo-1).toLocaleDateString('pt-BR',{month:'short',year:'2-digit'}); }),
-      datasets: [{ label:'Contratos', data: sorted.map(m=>months[m]), backgroundColor:'rgba(59,130,246,0.6)', borderRadius:6, borderSkipped:false }]
+      labels: sorted.map((m) => {
+        const [y, mo] = m.split("-");
+        return new Date(y, mo - 1).toLocaleDateString("pt-BR", {
+          month: "short",
+          year: "2-digit",
+        });
+      }),
+      datasets: [
+        {
+          label: "Contratos",
+          data: sorted.map((m) => months[m]),
+          backgroundColor: "rgba(59,130,246,0.6)",
+          borderRadius: 6,
+          borderSkipped: false,
+        },
+      ],
     },
-    options: { plugins:{ legend:{ display:false } }, scales:{ x:{ ticks:{color:'#64748b'}, grid:{display:false} }, y:{ ticks:{color:'#64748b'}, grid:{color:'rgba(255,255,255,0.05)'} } } }
+    options: {
+      plugins: { legend: { display: false } },
+      scales: {
+        x: { ticks: { color: "#64748b" }, grid: { display: false } },
+        y: {
+          ticks: { color: "#64748b" },
+          grid: { color: "rgba(255,255,255,0.05)" },
+        },
+      },
+    },
   });
 }
 
 function renderChartValores(data) {
-  const ctx = document.getElementById('chartValores');
+  const ctx = document.getElementById("chartValores");
   if (charts.val) charts.val.destroy();
   const years = {};
-  data.forEach(c => {
+  data.forEach((c) => {
     if (!c.vigInicial) return;
-    const y = c.vigInicial.substring(0,4);
+    const y = c.vigInicial.substring(0, 4);
     years[y] = (years[y] || 0) + Number(c.valorGlobal || 0);
   });
   const sorted = Object.keys(years).sort();
   charts.val = new Chart(ctx, {
-    type: 'line',
+    type: "line",
     data: {
       labels: sorted,
-      datasets: [{ label:'Valor (R$)', data: sorted.map(y=>years[y]), borderColor:'#06b6d4', backgroundColor:'rgba(6,182,212,0.08)', fill:true, tension:0.4, pointBackgroundColor:'#06b6d4', pointRadius:5 }]
+      datasets: [
+        {
+          label: "Valor (R$)",
+          data: sorted.map((y) => years[y]),
+          borderColor: "#06b6d4",
+          backgroundColor: "rgba(6,182,212,0.08)",
+          fill: true,
+          tension: 0.4,
+          pointBackgroundColor: "#06b6d4",
+          pointRadius: 5,
+        },
+      ],
     },
-    options: { plugins:{ legend:{ labels:{ color:'#94a3b8' } } }, scales:{ x:{ ticks:{color:'#64748b'}, grid:{display:false} }, y:{ ticks:{ color:'#64748b', callback:v=>'R$ '+Number(v).toLocaleString('pt-BR') }, grid:{color:'rgba(255,255,255,0.05)'} } } }
+    options: {
+      plugins: { legend: { labels: { color: "#94a3b8" } } },
+      scales: {
+        x: { ticks: { color: "#64748b" }, grid: { display: false } },
+        y: {
+          ticks: {
+            color: "#64748b",
+            callback: (v) => "R$ " + Number(v).toLocaleString("pt-BR"),
+          },
+          grid: { color: "rgba(255,255,255,0.05)" },
+        },
+      },
+    },
   });
 }
 
 /* ─── TABELA ─── */
 function renderTabela() {
   let data = contratos;
-  const search = document.getElementById('searchInput').value.toLowerCase();
-  const sit = document.getElementById('filterSituacao').value;
-  const alerta = document.getElementById('filterAlerta').value;
+  const search = document.getElementById("searchInput").value.toLowerCase();
+  const sit = document.getElementById("filterSituacao").value;
+  const alerta = document.getElementById("filterAlerta").value;
 
-  if (search) data = data.filter(c => [c.contrato,c.contratada,c.objeto,c.setor,c.cnpj].join(' ').toLowerCase().includes(search));
-  if (sit) data = data.filter(c => c.situacao === sit);
+  if (search)
+    data = data.filter((c) =>
+      [c.contrato, c.contratada, c.objeto, c.setor, c.cnpj]
+        .join(" ")
+        .toLowerCase()
+        .includes(search),
+    );
+  if (sit) data = data.filter((c) => c.situacao === sit);
   if (alerta) {
-    data = data.filter(c => {
+    data = data.filter((c) => {
       const d = diasRestantes(c.vigFinal);
-      if (alerta === 'critico') return d !== null && d >= 0 && d <= 20;
-      if (alerta === 'aviso') return d !== null && d > 20 && d <= 30;
-      if (alerta === 'ok') return d !== null && d > 30;
+      if (alerta === "critico") return d !== null && d >= 0 && d <= 20;
+      if (alerta === "aviso") return d !== null && d > 20 && d <= 30;
+      if (alerta === "ok") return d !== null && d > 30;
       return true;
     });
   }
@@ -331,67 +431,88 @@ function renderTabela() {
   const total = data.length;
   const pages = Math.max(1, Math.ceil(total / PER_PAGE));
   if (currentPage > pages) currentPage = 1;
-  const slice = data.slice((currentPage-1)*PER_PAGE, currentPage*PER_PAGE);
+  const slice = data.slice(
+    (currentPage - 1) * PER_PAGE,
+    currentPage * PER_PAGE,
+  );
 
-  const tbody = document.getElementById('tabelaBody');
+  const tbody = document.getElementById("tabelaBody");
 
   if (!slice.length) {
     tbody.innerHTML = `<tr><td colspan="8"><div class="empty-state"><div class="empty-icon">🔍</div><p>Nenhum contrato encontrado.</p></div></td></tr>`;
-    document.getElementById('pagination').innerHTML = '';
+    document.getElementById("pagination").innerHTML = "";
     return;
   }
 
-  tbody.innerHTML = slice.map(c => {
-    const realIdx = c.id;
-    const d = diasRestantes(c.vigFinal);
-    let diasClass = 'dias-ok', diasLabel = d !== null ? d + ' dias' : '—';
-    if (d === null) { diasClass = 'dias-expirado'; diasLabel = '—'; }
-    else if (d < 0) { diasClass = 'dias-expirado'; diasLabel = 'Expirado'; }
-    else if (d <= 20) diasClass = 'dias-critico';
-    else if (d <= 30) diasClass = 'dias-aviso';
+  tbody.innerHTML = slice
+    .map((c) => {
+      const realIdx = c.id;
+      const d = diasRestantes(c.vigFinal);
+      let diasClass = "dias-ok",
+        diasLabel = d !== null ? d + " dias" : "—";
+      if (d === null) {
+        diasClass = "dias-expirado";
+        diasLabel = "—";
+      } else if (d < 0) {
+        diasClass = "dias-expirado";
+        diasLabel = "Expirado";
+      } else if (d <= 20) diasClass = "dias-critico";
+      else if (d <= 30) diasClass = "dias-aviso";
 
-    const sitBadge = { Ativo:'badge-green', Finalizado:'badge-gray', Aditivado:'badge-blue', Suspenso:'badge-yellow' }[c.situacao] || 'badge-gray';
+      const sitBadge =
+        {
+          Ativo: "badge-green",
+          Finalizado: "badge-gray",
+          Aditivado: "badge-blue",
+          Suspenso: "badge-yellow",
+        }[c.situacao] || "badge-gray";
 
-    return `<tr>
+      return `<tr>
 
-  <td>${c.processo || '—'}</td>
+  <td>${c.processo || "—"}</td>
 
   <td>
     <span style="font-family:var(--mono);font-size:12px;">
-      ${c.contrato || '—'}
+      ${c.contrato || "—"}
     </span>
   </td>
 
-   <td>${c.responsavel || '—'}</td>
+  <td class="col-responsavel">
+  ${c.responsavel || '—'}
+</td>
 
-  <td>${c.contratada || '—'}</td>
+  <td>${c.contratada || "—"}</td>
 
   <td style="font-family:var(--mono);font-size:12px;">
-    ${c.cnpj || '—'}
+    ${c.cnpj || "—"}
   </td>
 
   <td style="max-width:200px;">
-    ${c.objeto || '—'}
+    ${c.objeto || "—"}
   </td>
 
-  <td>${c.setor || '—'}</td>
+  <td>${c.setor || "—"}</td>
 
-  <td>${c.modalidade || '—'}</td>
-
-  <td>
-    ${c.vigInicial 
-      ? new Date(c.vigInicial+'T12:00:00').toLocaleDateString('pt-BR') 
-      : '—'}
-  </td>
+  <td>${c.modalidade || "—"}</td>
 
   <td>
-    ${c.vigFinal 
-      ? new Date(c.vigFinal+'T12:00:00').toLocaleDateString('pt-BR') 
-      : '—'}
+    ${
+      c.vigInicial
+        ? new Date(c.vigInicial + "T12:00:00").toLocaleDateString("pt-BR")
+        : "—"
+    }
   </td>
 
   <td>
-    R$ ${Number(c.valorGlobal||0).toLocaleString('pt-BR',{minimumFractionDigits:2})}
+    ${
+      c.vigFinal
+        ? new Date(c.vigFinal + "T12:00:00").toLocaleDateString("pt-BR")
+        : "—"
+    }
+  </td>
+
+  <td>
+    R$ ${Number(c.valorGlobal || 0).toLocaleString("pt-BR", { minimumFractionDigits: 2 })}
   </td>
 
   <td>
@@ -409,18 +530,20 @@ function renderTabela() {
   </td>
 
 </tr>`;
-  }).join('');
+    })
+    .join("");
 
   // pagination
-  const pg = document.getElementById('pagination');
-  pg.innerHTML = `<button class="pg-btn" onclick="changePage(${currentPage-1})" ${currentPage===1?'disabled':''}>‹</button>`;
-  for(let i=1;i<=pages;i++) pg.innerHTML += `<button class="pg-btn ${i===currentPage?'active':''}" onclick="changePage(${i})">${i}</button>`;
-  pg.innerHTML += `<button class="pg-btn" onclick="changePage(${currentPage+1})" ${currentPage===pages?'disabled':''}>›</button>`;
+  const pg = document.getElementById("pagination");
+  pg.innerHTML = `<button class="pg-btn" onclick="changePage(${currentPage - 1})" ${currentPage === 1 ? "disabled" : ""}>‹</button>`;
+  for (let i = 1; i <= pages; i++)
+    pg.innerHTML += `<button class="pg-btn ${i === currentPage ? "active" : ""}" onclick="changePage(${i})">${i}</button>`;
+  pg.innerHTML += `<button class="pg-btn" onclick="changePage(${currentPage + 1})" ${currentPage === pages ? "disabled" : ""}>›</button>`;
   pg.innerHTML += `<span style="font-size:12px;color:var(--text2);margin-left:8px;">${total} registro(s)</span>`;
 }
 
 function changePage(p) {
- const data = contratos;
+  const data = contratos;
   const pages = Math.max(1, Math.ceil(data.length / PER_PAGE));
   if (p < 1 || p > pages) return;
   currentPage = p;
@@ -428,44 +551,39 @@ function changePage(p) {
 }
 
 async function excluirContrato(id) {
-
-  if (!confirm('Tem certeza que deseja excluir este contrato?')) return;
+  if (!confirm("Tem certeza que deseja excluir este contrato?")) return;
 
   try {
-
     await deleteDoc(doc(db, "contratos", id));
 
-    toast('Contrato excluído com sucesso.', 'success');
+    toast("Contrato excluído com sucesso.", "success");
 
     carregarContratosFirebase();
-
   } catch (error) {
-
     console.error(error);
-    toast('Erro ao excluir contrato.', 'error');
-
+    toast("Erro ao excluir contrato.", "error");
   }
 }
 
 function renderAlertas() {
- const data = contratos;
+  const data = contratos;
 
-  const criticos = data.filter(c => {
+  const criticos = data.filter((c) => {
     const d = diasRestantes(c.vigFinal);
     return d !== null && d >= 0 && d <= 20;
   });
 
-  const aviso = data.filter(c => {
+  const aviso = data.filter((c) => {
     const d = diasRestantes(c.vigFinal);
     return d !== null && d > 20 && d <= 30;
   });
 
-  const expirados = data.filter(c => {
+  const expirados = data.filter((c) => {
     const d = diasRestantes(c.vigFinal);
     return d !== null && d < 0;
   });
 
-  let html = '';
+  let html = "";
 
   // Estado vazio
   if (!criticos.length && !aviso.length && !expirados.length) {
@@ -484,41 +602,47 @@ function renderAlertas() {
     html += buildAlertSection(
       `<i class="bi bi-exclamation-octagon-fill"></i> Contratos Críticos (Vencendo em ≤ 20 dias)`,
       criticos,
-      'danger'
+      "danger",
     );
 
   if (aviso.length)
     html += buildAlertSection(
       `<i class="bi bi-exclamation-triangle-fill"></i> Contratos em Aviso (21-30 dias)`,
       aviso,
-      'warning'
+      "warning",
     );
 
   if (expirados.length)
     html += buildAlertSection(
       `<i class="bi bi-x-circle-fill"></i> Contratos Expirados`,
       expirados,
-      'expired'
+      "expired",
     );
 
-  document.getElementById('alertasContent').innerHTML = html;
+  document.getElementById("alertasContent").innerHTML = html;
 }
 
 function buildAlertSection(title, items, type) {
-  const colors = { danger:'var(--danger)', warning:'var(--warning)', expired:'var(--text3)' };
-  const rows = items.map(c => {
-    const d = diasRestantes(c.vigFinal);
-    return `<div style="display:flex;align-items:center;justify-content:space-between;padding:14px 16px;border-bottom:1px solid var(--border);">
+  const colors = {
+    danger: "var(--danger)",
+    warning: "var(--warning)",
+    expired: "var(--text3)",
+  };
+  const rows = items
+    .map((c) => {
+      const d = diasRestantes(c.vigFinal);
+      return `<div style="display:flex;align-items:center;justify-content:space-between;padding:14px 16px;border-bottom:1px solid var(--border);">
       <div>
-        <div style="font-weight:600;font-size:13px;">${c.contratada || '—'} <span style="font-family:var(--mono);font-size:11px;color:var(--text2);">[${c.contrato||''}]</span></div>
-        <div style="font-size:12px;color:var(--text2);margin-top:2px;">${c.objeto||''} ${c.setor?'• '+c.setor:''}</div>
+        <div style="font-weight:600;font-size:13px;">${c.contratada || "—"} <span style="font-family:var(--mono);font-size:11px;color:var(--text2);">[${c.contrato || ""}]</span></div>
+        <div style="font-size:12px;color:var(--text2);margin-top:2px;">${c.objeto || ""} ${c.setor ? "• " + c.setor : ""}</div>
       </div>
       <div style="text-align:right;">
-        <div style="font-family:var(--mono);font-size:13px;font-weight:700;color:${colors[type]};">${d<0?'Expirado há '+Math.abs(d)+' dias':d+' dias restantes'}</div>
-        <div style="font-size:11px;color:var(--text2);">${c.vigFinal ? new Date(c.vigFinal+'T12:00:00').toLocaleDateString('pt-BR') : ''}</div>
+        <div style="font-family:var(--mono);font-size:13px;font-weight:700;color:${colors[type]};">${d < 0 ? "Expirado há " + Math.abs(d) + " dias" : d + " dias restantes"}</div>
+        <div style="font-size:11px;color:var(--text2);">${c.vigFinal ? new Date(c.vigFinal + "T12:00:00").toLocaleDateString("pt-BR") : ""}</div>
       </div>
     </div>`;
-  }).join('');
+    })
+    .join("");
 
   return `<div style="margin-bottom:24px;">
     <h3 style="font-size:14px;font-weight:700;margin-bottom:12px;color:${colors[type]};">${title}</h3>
@@ -528,13 +652,15 @@ function buildAlertSection(title, items, type) {
 
 /* ─── RELATÓRIOS ─── */
 function renderRelatorios() {
- const data = contratos;
-  const aditivados = data.filter(c => c.situacao==='Aditivado').length;
-  const suspensos = data.filter(c => c.situacao==='Suspenso').length;
-  const finalizados = data.filter(c => c.situacao==='Finalizado').length;
-  const mediaValor = data.length ? data.reduce((s,c)=>s+Number(c.valorGlobal||0),0)/data.length : 0;
+  const data = contratos;
+  const aditivados = data.filter((c) => c.situacao === "Aditivado").length;
+  const suspensos = data.filter((c) => c.situacao === "Suspenso").length;
+  const finalizados = data.filter((c) => c.situacao === "Finalizado").length;
+  const mediaValor = data.length
+    ? data.reduce((s, c) => s + Number(c.valorGlobal || 0), 0) / data.length
+    : 0;
 
-  document.getElementById('relStats').innerHTML = `
+  document.getElementById("relStats").innerHTML = `
   <div class="stat-card s-blue">
     <div class="stat-icon">
       <i class="bi bi-arrow-repeat"></i>
@@ -565,30 +691,83 @@ function renderRelatorios() {
     </div>
     <div class="stat-label">Valor Médio</div>
     <div class="stat-value" style="font-size:16px;">
-      R$ ${mediaValor.toLocaleString('pt-BR',{maximumFractionDigits:0})}
+      R$ ${mediaValor.toLocaleString("pt-BR", { maximumFractionDigits: 0 })}
     </div>
   </div>
 `;
 
   // Chart setor
   const setores = {};
-  data.forEach(c => setores[c.setor||'Não informado'] = (setores[c.setor||'Não informado']||0)+1);
-  const ctxSt = document.getElementById('chartSetor');
+  data.forEach(
+    (c) =>
+      (setores[c.setor || "Não informado"] =
+        (setores[c.setor || "Não informado"] || 0) + 1),
+  );
+  const ctxSt = document.getElementById("chartSetor");
   if (charts.setor) charts.setor.destroy();
   charts.setor = new Chart(ctxSt, {
-    type:'bar',
-    data:{ labels:Object.keys(setores), datasets:[{ label:'Contratos', data:Object.values(setores), backgroundColor:'rgba(139,92,246,0.6)', borderRadius:6, borderSkipped:false }] },
-    options:{ indexAxis:'y', plugins:{legend:{display:false}}, scales:{ x:{ticks:{color:'#64748b'}, grid:{color:'rgba(255,255,255,0.05)'}}, y:{ticks:{color:'#64748b'}, grid:{display:false}} } }
+    type: "bar",
+    data: {
+      labels: Object.keys(setores),
+      datasets: [
+        {
+          label: "Contratos",
+          data: Object.values(setores),
+          backgroundColor: "rgba(139,92,246,0.6)",
+          borderRadius: 6,
+          borderSkipped: false,
+        },
+      ],
+    },
+    options: {
+      indexAxis: "y",
+      plugins: { legend: { display: false } },
+      scales: {
+        x: {
+          ticks: { color: "#64748b" },
+          grid: { color: "rgba(255,255,255,0.05)" },
+        },
+        y: { ticks: { color: "#64748b" }, grid: { display: false } },
+      },
+    },
   });
 
   // Top 10
-  const top10 = [...data].sort((a,b)=>Number(b.valorGlobal)-Number(a.valorGlobal)).slice(0,10);
-  const ctxTop = document.getElementById('chartTop10');
+  const top10 = [...data]
+    .sort((a, b) => Number(b.valorGlobal) - Number(a.valorGlobal))
+    .slice(0, 10);
+  const ctxTop = document.getElementById("chartTop10");
   if (charts.top10) charts.top10.destroy();
   charts.top10 = new Chart(ctxTop, {
-    type:'bar',
-    data:{ labels:top10.map(c=>c.contratada?.split(' ').slice(0,2).join(' ')||'?'), datasets:[{ label:'Valor (R$)', data:top10.map(c=>Number(c.valorGlobal||0)), backgroundColor:'rgba(6,182,212,0.6)', borderRadius:6, borderSkipped:false }] },
-    options:{ indexAxis:'y', plugins:{legend:{display:false}}, scales:{ x:{ ticks:{ color:'#64748b', callback:v=>'R$ '+Number(v).toLocaleString('pt-BR') }, grid:{color:'rgba(255,255,255,0.05)'} }, y:{ticks:{color:'#64748b'}, grid:{display:false}} } }
+    type: "bar",
+    data: {
+      labels: top10.map(
+        (c) => c.contratada?.split(" ").slice(0, 2).join(" ") || "?",
+      ),
+      datasets: [
+        {
+          label: "Valor (R$)",
+          data: top10.map((c) => Number(c.valorGlobal || 0)),
+          backgroundColor: "rgba(6,182,212,0.6)",
+          borderRadius: 6,
+          borderSkipped: false,
+        },
+      ],
+    },
+    options: {
+      indexAxis: "y",
+      plugins: { legend: { display: false } },
+      scales: {
+        x: {
+          ticks: {
+            color: "#64748b",
+            callback: (v) => "R$ " + Number(v).toLocaleString("pt-BR"),
+          },
+          grid: { color: "rgba(255,255,255,0.05)" },
+        },
+        y: { ticks: { color: "#64748b" }, grid: { display: false } },
+      },
+    },
   });
 }
 
@@ -596,110 +775,114 @@ function renderRelatorios() {
 function abrirModalCadastro() {
   editingIndex = null;
 
-  document.getElementById('modalCadTitle').textContent = 'Novo Contrato';
-  document.getElementById('btnSalvarModal').textContent = 'Salvar Contrato';
+  document.getElementById("modalCadTitle").textContent = "Novo Contrato";
+  document.getElementById("btnSalvarModal").textContent = "Salvar Contrato";
 
-  ['fProcesso','fContrato','fContratada','fCNPJ','fObjeto','fVigInicial','fVigFinal','fValor','fResponsavel','fObs']
-    .forEach(id => document.getElementById(id).value = '');
+  [
+    "fProcesso",
+    "fContrato",
+    "fContratada",
+    "fCNPJ",
+    "fObjeto",
+    "fVigInicial",
+    "fVigFinal",
+    "fValor",
+    "fResponsavel",
+    "fObs",
+  ].forEach((id) => (document.getElementById(id).value = ""));
 
-  document.getElementById('fSituacao').value = 'Ativo';
-  document.getElementById('fModalidade').value = 'Pregão Eletrônico';
+  document.getElementById("fSituacao").value = "Ativo";
+  document.getElementById("fModalidade").value = "Pregão Eletrônico";
 
-  document.getElementById('fSetor').value = ''; // ✔ CORRETO
+  document.getElementById("fSetor").value = ""; // ✔ CORRETO
 
-  abrirModal('modalCad');
+  abrirModal("modalCad");
 }
 
 function editarContrato(id) {
-
   editingIndex = id;
 
   const data = contratos;
-  const c = data.find(x => x.id === id);
+  const c = data.find((x) => x.id === id);
 
   if (!c) {
-    toast('Contrato não encontrado.', 'error');
+    toast("Contrato não encontrado.", "error");
     return;
   }
 
-  document.getElementById('modalCadTitle').textContent = 'Editar Contrato';
-  document.getElementById('btnSalvarModal').textContent = 'Atualizar Contrato';
+  document.getElementById("modalCadTitle").textContent = "Editar Contrato";
+  document.getElementById("btnSalvarModal").textContent = "Atualizar Contrato";
 
-  document.getElementById('fProcesso').value = c.processo || '';
-  document.getElementById('fContrato').value = c.contrato || '';
-  document.getElementById('fContratada').value = c.contratada || '';
-  document.getElementById('fCNPJ').value = c.cnpj || '';
-  document.getElementById('fObjeto').value = c.objeto || '';
-  document.getElementById('fVigInicial').value = c.vigInicial || '';
-  document.getElementById('fVigFinal').value = c.vigFinal || '';
-  document.getElementById('fValor').value = c.valorGlobal || '';
-  document.getElementById('fSituacao').value = c.situacao || 'Ativo';
-  document.getElementById('fModalidade').value = c.modalidade || 'Pregão Eletrônico';
-  document.getElementById('fSetor').value = c.setor || 'Secretaria de Saúde';
-  document.getElementById('fResponsavel').value = c.responsavel || '';
-  document.getElementById('fObs').value = c.obs || '';
+  document.getElementById("fProcesso").value = c.processo || "";
+  document.getElementById("fContrato").value = c.contrato || "";
+  document.getElementById("fContratada").value = c.contratada || "";
+  document.getElementById("fCNPJ").value = c.cnpj || "";
+  document.getElementById("fObjeto").value = c.objeto || "";
+  document.getElementById("fVigInicial").value = c.vigInicial || "";
+  document.getElementById("fVigFinal").value = c.vigFinal || "";
+  document.getElementById("fValor").value = c.valorGlobal || "";
+  document.getElementById("fSituacao").value = c.situacao || "Ativo";
+  document.getElementById("fModalidade").value =
+    c.modalidade || "Pregão Eletrônico";
+  document.getElementById("fSetor").value = c.setor || "Secretaria de Saúde";
+  document.getElementById("fResponsavel").value = c.responsavel || "";
+  document.getElementById("fObs").value = c.obs || "";
 
-  abrirModal('modalCad');
+  abrirModal("modalCad");
 }
 
 async function salvarContrato() {
-
-  const contrato = document.getElementById('fContrato').value.trim();
-  const contratada = document.getElementById('fContratada').value.trim();
+  const contrato = document.getElementById("fContrato").value.trim();
+  const contratada = document.getElementById("fContratada").value.trim();
 
   if (!contrato || !contratada) {
-    toast('Preencha pelo menos Nº Contrato e Contratada.', 'warning');
+    toast("Preencha pelo menos Nº Contrato e Contratada.", "warning");
     return;
   }
 
   const obj = {
-    processo: document.getElementById('fProcesso').value.trim(),
+    processo: document.getElementById("fProcesso").value.trim(),
     contrato,
     contratada,
-    cnpj: document.getElementById('fCNPJ').value.trim(),
-    objeto: document.getElementById('fObjeto').value.trim(),
-    vigInicial: document.getElementById('fVigInicial').value,
-    vigFinal: document.getElementById('fVigFinal').value,
-    valorGlobal: document.getElementById('fValor').value,
-    situacao: document.getElementById('fSituacao').value,
-    modalidade: document.getElementById('fModalidade').value,
-    setor: document.getElementById('fSetor').value,
-    responsavel: document.getElementById('fResponsavel').value.trim(),
-    obs: document.getElementById('fObs').value.trim(),
+    cnpj: document.getElementById("fCNPJ").value.trim(),
+    objeto: document.getElementById("fObjeto").value.trim(),
+    vigInicial: document.getElementById("fVigInicial").value,
+    vigFinal: document.getElementById("fVigFinal").value,
+    valorGlobal: document.getElementById("fValor").value,
+    situacao: document.getElementById("fSituacao").value,
+    modalidade: document.getElementById("fModalidade").value,
+    setor: document.getElementById("fSetor").value,
+    responsavel: document.getElementById("fResponsavel").value.trim(),
+    obs: document.getElementById("fObs").value.trim(),
     createdAt: new Date(),
     updatedAt: new Date(),
-    userId: currentUser.uid
+    userId: currentUser.uid,
   };
 
   try {
-
     if (editingIndex !== null) {
       const contratoRef = doc(db, "contratos", editingIndex);
       await updateDoc(contratoRef, {
         ...obj,
-        updatedAt: new Date()
+        updatedAt: new Date(),
       });
 
-      toast('Contrato atualizado com sucesso!', 'success');
-
+      toast("Contrato atualizado com sucesso!", "success");
     } else {
-
       await addDoc(collection(db, "contratos"), obj);
 
-      toast('Contrato cadastrado com sucesso!', 'success');
+      toast("Contrato cadastrado com sucesso!", "success");
     }
 
-    fecharModal('modalCad');
+    fecharModal("modalCad");
     carregarContratosFirebase();
-
   } catch (error) {
     console.error(error);
-    toast('Erro ao salvar no Firebase.', 'error');
+    toast("Erro ao salvar no Firebase.", "error");
   }
 }
 
 async function carregarContratosFirebase() {
-
   const querySnapshot = await getDocs(collection(db, "contratos"));
 
   contratos = [];
@@ -707,7 +890,7 @@ async function carregarContratosFirebase() {
   querySnapshot.forEach((docSnap) => {
     contratos.push({
       id: docSnap.id,
-      ...docSnap.data()
+      ...docSnap.data(),
     });
   });
 
@@ -716,46 +899,45 @@ async function carregarContratosFirebase() {
   updateAlertBadge();
 }
 
-
 /* ─── DETALHE ─── */
 function verDetalhe(id) {
-
- const data = contratos;
-  const c = data.find(x => x.id === id);
+  const data = contratos;
+  const c = data.find((x) => x.id === id);
 
   if (!c) {
-    toast('Contrato não encontrado.', 'error');
+    toast("Contrato não encontrado.", "error");
     return;
   }
 
   const d = diasRestantes(c.vigFinal);
-  let diasHtml = '—';
+  let diasHtml = "—";
 
   if (d !== null)
-    diasHtml = d < 0
-      ? `<span style="color:var(--text3)">Expirado há ${Math.abs(d)} dias</span>`
-      : `<span style="color:${d<=20?'#fca5a5':d<=30?'#fcd34d':'#6ee7b7'}">${d} dias restantes</span>`;
+    diasHtml =
+      d < 0
+        ? `<span style="color:var(--text3)">Expirado há ${Math.abs(d)} dias</span>`
+        : `<span style="color:${d <= 20 ? "#fca5a5" : d <= 30 ? "#fcd34d" : "#6ee7b7"}">${d} dias restantes</span>`;
 
-  document.getElementById('modalDetalheBody').innerHTML = `
+  document.getElementById("modalDetalheBody").innerHTML = `
     <div class="detail-row">
       <span class="detail-label">Nº Processo</span>
-      <span class="detail-value">${c.processo || '—'}</span>
+      <span class="detail-value">${c.processo || "—"}</span>
     </div>
 
     <div class="detail-row">
       <span class="detail-label">Nº Contrato</span>
-      <span class="detail-value">${c.contrato || '—'}</span>
+      <span class="detail-value">${c.contrato || "—"}</span>
     </div>
 
     <div class="detail-row">
       <span class="detail-label">Contratada</span>
-      <span class="detail-value"><strong>${c.contratada || '—'}</strong></span>
+      <span class="detail-value"><strong>${c.contratada || "—"}</strong></span>
     </div>
 
     <div class="detail-row">
       <span class="detail-label">Valor Global</span>
       <span class="detail-value">
-        R$ ${Number(c.valorGlobal || 0).toLocaleString('pt-BR',{minimumFractionDigits:2})}
+        R$ ${Number(c.valorGlobal || 0).toLocaleString("pt-BR", { minimumFractionDigits: 2 })}
       </span>
     </div>
 
@@ -765,33 +947,33 @@ function verDetalhe(id) {
     </div>
   `;
 
-  document.getElementById('btnEditDetalhe').onclick = () => {
-    fecharModal('modalDetalhe');
+  document.getElementById("btnEditDetalhe").onclick = () => {
+    fecharModal("modalDetalhe");
     editarContrato(id);
   };
 
-  abrirModal('modalDetalhe');
+  abrirModal("modalDetalhe");
 }
 
 /* ─── EXPORT ─── */
 function getFilteredExport() {
   let data = contratos;
 
-  const sit = document.getElementById('expSituacao').value;
-  const prazo = document.getElementById('expPrazo').value;
-  const mes = document.getElementById('expMes').value;
+  const sit = document.getElementById("expSituacao").value;
+  const prazo = document.getElementById("expPrazo").value;
+  const mes = document.getElementById("expMes").value;
 
   if (sit) {
-    data = data.filter(c => c.situacao === sit);
+    data = data.filter((c) => c.situacao === sit);
   }
 
   if (prazo) {
-    data = data.filter(c => {
+    data = data.filter((c) => {
       const d = diasRestantes(c.vigFinal);
 
-      if (prazo === 'critico') return d !== null && d >= 0 && d <= 20;
-      if (prazo === 'aviso') return d !== null && d > 20 && d <= 30;
-      if (prazo === 'expirado') return d !== null && d < 0;
+      if (prazo === "critico") return d !== null && d >= 0 && d <= 20;
+      if (prazo === "aviso") return d !== null && d > 20 && d <= 30;
+      if (prazo === "expirado") return d !== null && d < 0;
 
       return true;
     });
@@ -799,7 +981,7 @@ function getFilteredExport() {
 
   // 🔥 NOVO FILTRO POR MÊS
   if (mes) {
-    data = data.filter(c => {
+    data = data.filter((c) => {
       if (!c.vigFinal) return false;
       return c.vigFinal.substring(5, 7) === mes;
     });
@@ -810,66 +992,109 @@ function getFilteredExport() {
 
 function exportarCSV() {
   const data = getFilteredExport();
-  if (!data.length) { toast('Nenhum dado para exportar.','warning'); return; }
-  const headers = ['Processo','Contrato','Contratada','CNPJ','Objeto','Setor','Modalidade','Vigência Inicial','Vigência Final','Valor Global','Situação','Responsável'];
-  const rows = data.map(c => [c.processo,c.contrato,c.contratada,c.cnpj,c.objeto,c.setor,c.modalidade,c.vigInicial,c.vigFinal,c.valorGlobal,c.situacao,c.responsavel].map(v=>`"${(v||'').toString().replace(/"/g,'""')}"`).join(','));
-  const csv = [headers.join(','), ...rows].join('\n');
-  const blob = new Blob(['\ufeff'+csv], {type:'text/csv;charset=utf-8'});
-  const a = document.createElement('a'); a.href = URL.createObjectURL(blob);
-  a.download = `contratos_oriximina_${new Date().toISOString().slice(0,10)}.csv`; a.click();
-  toast(`CSV exportado com ${data.length} registro(s).`, 'success');
+  if (!data.length) {
+    toast("Nenhum dado para exportar.", "warning");
+    return;
+  }
+  const headers = [
+    "Processo",
+    "Contrato",
+    "Contratada",
+    "CNPJ",
+    "Objeto",
+    "Setor",
+    "Modalidade",
+    "Vigência Inicial",
+    "Vigência Final",
+    "Valor Global",
+    "Situação",
+    "Responsável",
+  ];
+  const rows = data.map((c) =>
+    [
+      c.processo,
+      c.contrato,
+      c.contratada,
+      c.cnpj,
+      c.objeto,
+      c.setor,
+      c.modalidade,
+      c.vigInicial,
+      c.vigFinal,
+      c.valorGlobal,
+      c.situacao,
+      c.responsavel,
+    ]
+      .map((v) => `"${(v || "").toString().replace(/"/g, '""')}"`)
+      .join(","),
+  );
+  const csv = [headers.join(","), ...rows].join("\n");
+  const blob = new Blob(["\ufeff" + csv], { type: "text/csv;charset=utf-8" });
+  const a = document.createElement("a");
+  a.href = URL.createObjectURL(blob);
+  a.download = `contratos_oriximina_${new Date().toISOString().slice(0, 10)}.csv`;
+  a.click();
+  toast(`CSV exportado com ${data.length} registro(s).`, "success");
 }
-
-
 
 function exportarHTML() {
   const data = getFilteredExport();
-  if (!data.length) { toast('Nenhum dado para exportar.','warning'); return; }
-  const rows = data.map(c => `<tr>
-    <td>${c.contrato||''}</td>
-    <td>${c.contratada||''}</td>
-    <td>${c.objeto||''}</td>
-    <td>${c.setor||''}</td>
-    <td>${c.vigFinal ? new Date(c.vigFinal+'T12:00:00').toLocaleDateString('pt-BR') : ''}</td>
-    <td>R$ ${Number(c.valorGlobal||0).toLocaleString('pt-BR',{minimumFractionDigits:2})}</td>
-    <td>${c.situacao||''}</td>
-  </tr>`).join('');
-  const w = window.open('','_blank');
-  w.document.write(`<html><head><title>Contratos - Oriximiná</title><style>body{font-family:Arial,sans-serif;padding:20px;}table{border-collapse:collapse;width:100%;}th,td{border:1px solid #ccc;padding:8px;font-size:12px;}th{background:#1e3a8a;color:white;}tr:nth-child(even){background:#f5f5f5;}h2{color:#1e3a8a;}</style></head><body><h2>Prefeitura de Oriximiná - Gestão de Contratos</h2><p>Gerado em ${new Date().toLocaleString('pt-BR')}</p><table><thead><tr><th>Contrato</th><th>Contratada</th><th>Objeto</th><th>Setor</th><th>Venc.</th><th>Valor</th><th>Situação</th></tr></thead><tbody>${rows}</tbody></table></body></html>`);
+  if (!data.length) {
+    toast("Nenhum dado para exportar.", "warning");
+    return;
+  }
+  const rows = data
+    .map(
+      (c) => `<tr>
+    <td>${c.contrato || ""}</td>
+    <td>${c.contratada || ""}</td>
+    <td>${c.objeto || ""}</td>
+    <td>${c.setor || ""}</td>
+    <td>${c.vigFinal ? new Date(c.vigFinal + "T12:00:00").toLocaleDateString("pt-BR") : ""}</td>
+    <td>R$ ${Number(c.valorGlobal || 0).toLocaleString("pt-BR", { minimumFractionDigits: 2 })}</td>
+    <td>${c.situacao || ""}</td>
+  </tr>`,
+    )
+    .join("");
+  const w = window.open("", "_blank");
+  w.document.write(
+    `<html><head><title>Contratos - Oriximiná</title><style>body{font-family:Arial,sans-serif;padding:20px;}table{border-collapse:collapse;width:100%;}th,td{border:1px solid #ccc;padding:8px;font-size:12px;}th{background:#1e3a8a;color:white;}tr:nth-child(even){background:#f5f5f5;}h2{color:#1e3a8a;}</style></head><body><h2>Prefeitura de Oriximiná - Gestão de Contratos</h2><p>Gerado em ${new Date().toLocaleString("pt-BR")}</p><table><thead><tr><th>Contrato</th><th>Contratada</th><th>Objeto</th><th>Setor</th><th>Venc.</th><th>Valor</th><th>Situação</th></tr></thead><tbody>${rows}</tbody></table></body></html>`,
+  );
   w.print();
 }
 
 /* ─── MODAIS ─── */
 function abrirModal(id) {
-  document.getElementById(id).classList.add('open');
-  document.body.style.overflow = 'hidden';
+  document.getElementById(id).classList.add("open");
+  document.body.style.overflow = "hidden";
 }
 function fecharModal(id) {
-  document.getElementById(id).classList.remove('open');
-  document.body.style.overflow = '';
+  document.getElementById(id).classList.remove("open");
+  document.body.style.overflow = "";
 }
-document.addEventListener('click', e => {
-  if (e.target.classList.contains('modal-overlay')) fecharModal(e.target.id);
+document.addEventListener("click", (e) => {
+  if (e.target.classList.contains("modal-overlay")) fecharModal(e.target.id);
 });
 
 /* ─── TOAST ─── */
-function toast(msg, type='info') {
-  const icons = { success:'✅', error:'❌', warning:'⚠️', info:'ℹ️' };
-  const div = document.createElement('div');
+function toast(msg, type = "info") {
+  const icons = { success: "✅", error: "❌", warning: "⚠️", info: "ℹ️" };
+  const div = document.createElement("div");
   div.className = `toast-item ${type}`;
-  div.innerHTML = `<span class="toast-icon">${icons[type]||'ℹ️'}</span><div class="toast-text"><strong>${msg}</strong></div><span class="toast-close" onclick="this.parentElement.remove()">✕</span>`;
-  document.getElementById('toast').appendChild(div);
-  setTimeout(() => div.style.animation = 'toastIn .3s reverse forwards', 3700);
+  div.innerHTML = `<span class="toast-icon">${icons[type] || "ℹ️"}</span><div class="toast-text"><strong>${msg}</strong></div><span class="toast-close" onclick="this.parentElement.remove()">✕</span>`;
+  document.getElementById("toast").appendChild(div);
+  setTimeout(
+    () => (div.style.animation = "toastIn .3s reverse forwards"),
+    3700,
+  );
   setTimeout(() => div.remove(), 4000);
 }
-
 
 function getFutureDate(days) {
   const d = new Date();
   d.setDate(d.getDate() + days);
-  return d.toISOString().slice(0,10);
+  return d.toISOString().slice(0, 10);
 }
-
 
 // 🔓 Expor funções globais (necessário porque o script é module)
 window.logar = logar;
