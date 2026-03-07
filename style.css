@@ -29,6 +29,13 @@ body {
   overflow-x: hidden;
 }
 
+.col-responsavel{
+  max-width:180px;
+  white-space:normal;
+  word-break:break-word;
+  line-height:1.3;
+}
+
 /* ─── SCROLLBAR ─── */
 ::-webkit-scrollbar { width: 6px; }
 ::-webkit-scrollbar-track { background: var(--bg); }
