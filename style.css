@@ -298,10 +298,7 @@ body {
   overflow-y: hidden;
 }
 
-.table-wrap table {
-  min-width: 1400px; /* força largura mínima */
-  border-collapse: collapse;
-}
+
 
 .table-wrap::-webkit-scrollbar {
   height: 8px;
@@ -445,11 +442,7 @@ body {
 
 
 
-table {
-  width: max-content;
-  min-width: 1500px;
-  border-collapse: collapse;
-}
+
 thead { background: var(--surface2); }
 th {
   padding: 13px 16px; text-align: left;
@@ -457,6 +450,14 @@ th {
   text-transform: uppercase; color: var(--text2);
   border-bottom: 1px solid var(--border);
 }
+
+th {
+  white-space: normal;
+  text-align: center;
+  font-size: 12px;
+}
+
+
 td {
   padding: 12px 16px;
   font-size: 13px;

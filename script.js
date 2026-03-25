@@ -439,7 +439,17 @@ function renderTabela() {
   const tbody = document.getElementById("tabelaBody");
 
   if (!slice.length) {
-    tbody.innerHTML = `<tr><td colspan="8"><div class="empty-state"><div class="empty-icon">🔍</div><p>Nenhum contrato encontrado.</p></div></td></tr>`;
+    tbody.innerHTML = `
+<tr>
+  <td colspan="8">
+    <div class="empty-state">
+      <div class="empty-icon">
+        <i class="bi bi-search"></i>
+      </div>
+      <p>Nenhum contrato encontrado.</p>
+    </div>
+  </td>
+</tr>`;
     document.getElementById("pagination").innerHTML = "";
     return;
   }
@@ -1107,10 +1117,7 @@ function formatarDocumento(doc) {
   }
 
   if (doc.length === 14) {
-    return doc.replace(
-      /(\d{2})(\d{3})(\d{3})(\d{4})(\d{2})/,
-      "$1.$2.$3/$4-$5"
-    );
+    return doc.replace(/(\d{2})(\d{3})(\d{3})(\d{4})(\d{2})/, "$1.$2.$3/$4-$5");
   }
 
   return doc;
@@ -1147,8 +1154,6 @@ document.getElementById("fValor").addEventListener("input", function (e) {
 
   e.target.value = v;
 });
-
-
 
 // 🔓 Expor funções globais (necessário porque o script é module)
 window.logar = logar;
