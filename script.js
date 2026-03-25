@@ -478,13 +478,13 @@ function renderTabela() {
   </td>
 
   <td class="col-responsavel">
-  ${c.responsavel || '—'}
+  ${c.responsavel || "—"}
 </td>
 
   <td>${c.contratada || "—"}</td>
 
   <td style="font-family:var(--mono);font-size:12px;">
-    ${c.cnpj || "—"}
+    ${formatarDocumento(c.cnpj)}
   </td>
 
   <td style="max-width:200px;">
@@ -816,7 +816,7 @@ function editarContrato(id) {
   document.getElementById("fProcesso").value = c.processo || "";
   document.getElementById("fContrato").value = c.contrato || "";
   document.getElementById("fContratada").value = c.contratada || "";
-  document.getElementById("fCNPJ").value = c.cnpj || "";
+  document.getElementById("fCNPJ").value = formatarDocumento(c.cnpj);
   document.getElementById("fObjeto").value = c.objeto || "";
   document.getElementById("fVigInicial").value = c.vigInicial || "";
   document.getElementById("fVigFinal").value = c.vigFinal || "";
@@ -844,11 +844,12 @@ async function salvarContrato() {
     processo: document.getElementById("fProcesso").value.trim(),
     contrato,
     contratada,
-    cnpj: document.getElementById("fCNPJ").value.trim(),
+    cnpj: document.getElementById("fCNPJ").value.replace(/\D/g, ""),
     objeto: document.getElementById("fObjeto").value.trim(),
     vigInicial: document.getElementById("fVigInicial").value,
     vigFinal: document.getElementById("fVigFinal").value,
-    valorGlobal: document.getElementById("fValor").value,
+    valorGlobal:
+      Number(document.getElementById("fValor").value.replace(/\D/g, "")) / 100,
     situacao: document.getElementById("fSituacao").value,
     modalidade: document.getElementById("fModalidade").value,
     setor: document.getElementById("fSetor").value,
@@ -1095,6 +1096,59 @@ function getFutureDate(days) {
   d.setDate(d.getDate() + days);
   return d.toISOString().slice(0, 10);
 }
+
+function formatarDocumento(doc) {
+  if (!doc) return "-";
+
+  doc = doc.replace(/\D/g, "");
+
+  if (doc.length === 11) {
+    return doc.replace(/(\d{3})(\d{3})(\d{3})(\d{2})/, "$1.$2.$3-$4");
+  }
+
+  if (doc.length === 14) {
+    return doc.replace(
+      /(\d{2})(\d{3})(\d{3})(\d{4})(\d{2})/,
+      "$1.$2.$3/$4-$5"
+    );
+  }
+
+  return doc;
+}
+
+const campoDoc = document.getElementById("fCNPJ");
+
+campoDoc.addEventListener("input", function (e) {
+  let v = e.target.value.replace(/\D/g, "");
+
+  if (v.length <= 11) {
+    // CPF
+    v = v.replace(/(\d{3})(\d)/, "$1.$2");
+    v = v.replace(/(\d{3})(\d)/, "$1.$2");
+    v = v.replace(/(\d{3})(\d{1,2})$/, "$1-$2");
+  } else {
+    // CNPJ
+    v = v.replace(/^(\d{2})(\d)/, "$1.$2");
+    v = v.replace(/^(\d{2})\.(\d{3})(\d)/, "$1.$2.$3");
+    v = v.replace(/\.(\d{3})(\d)/, ".$1/$2");
+    v = v.replace(/(\d{4})(\d)/, "$1-$2");
+  }
+
+  e.target.value = v;
+});
+
+document.getElementById("fValor").addEventListener("input", function (e) {
+  let v = e.target.value.replace(/\D/g, "");
+
+  v = (Number(v) / 100).toLocaleString("pt-BR", {
+    style: "currency",
+    currency: "BRL",
+  });
+
+  e.target.value = v;
+});
+
+
 
 // 🔓 Expor funções globais (necessário porque o script é module)
 window.logar = logar;

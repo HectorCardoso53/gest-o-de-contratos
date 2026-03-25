@@ -181,11 +181,11 @@
                                 <tr>
                                     <th>Nº Processo</th>
                                     <th>Nº Contrato</th>
-                                    <th>Responsável</th>
+                                    <th>Fiscal de Controle</th>
                                     <th>Contratada</th>
-                                    <th>CNPJ</th>
+                                    <th>CNPJ ou CPF</th>
                                     <th>Objeto</th>
-                                    <th>Setor</th>
+                                    <th>Orgão Gestor</th>
                                     <th>Modalidade</th>
                                     <th>Vig. Inicial</th>
                                     <th>Vig. Final</th>
@@ -232,6 +232,7 @@
                                 <option value="">Todas</option>
                                 <option>Ativo</option>
                                 <option>Finalizado</option>
+                                <option>Renovação</option>
                                 <option>Aditivado</option>
                                 <option>Suspenso</option>
                             </select>
@@ -299,9 +300,9 @@
                     </div>
                     <div class="field form-full"><label>Contratada</label><input id="fContratada"
                             placeholder="Nome da empresa"></div>
-                    <div class="field"><label>CNPJ</label><input id="fCNPJ" placeholder="00.000.000/0000-00"></div>
+                    <div class="field"><label>CNPJ</label><input id="fCNPJ" placeholder="CPF ou CNPJ"></div>
                     <div class="field">
-                        <label>Setor / Secretaria</label>
+                        <label>Orgão Gestor</label>
                         <input id="fSetor" placeholder="Ex: Secretaria de Saúde">
                     </div>
                     <div class="field form-full"><label>Objeto</label><textarea id="fObjeto"
@@ -312,12 +313,13 @@
                 <div class="form-grid">
                     <div class="field"><label>Vigência Inicial</label><input type="date" id="fVigInicial"></div>
                     <div class="field"><label>Vigência Final</label><input type="date" id="fVigFinal"></div>
-                    <div class="field"><label>Valor Global (R$)</label><input type="number" id="fValor"
-                            placeholder="0,00" min="0" step="0.01"></div>
+                    <div class="field"><label>Valor Global (R$)</label><input type="text" id="fValor"
+                            placeholder="R$ 0,00"></div>
                     <div class="field"><label>Situação</label>
                         <select id="fSituacao">
                             <option>Ativo</option>
                             <option>Finalizado</option>
+                            <option>Renovação</option>
                             <option>Aditivado</option>
                             <option>Suspenso</option>
                         </select>
@@ -325,14 +327,15 @@
                     <div class="field"><label>Modalidade Licitação</label>
                         <select id="fModalidade">
                             <option>Pregão Eletrônico</option>
-                            <option>Pregão Presencial</option>
+                            <option>Pregão de preço</option>
                             <option>Tomada de Preços</option>
-                            <option>Concorrência</option>
+                            <option>Concorrência Eletrônica</option>
                             <option>Dispensa de Licitação</option>
+                            <option>Chamado Público</option>
                             <option>Inexigibilidade</option>
                         </select>
                     </div>
-                    <div class="field"><label>Responsável</label><input id="fResponsavel"
+                    <div class="field"><label>Fiscal de Contrato</label><input id="fResponsavel"
                             placeholder="Nome do gestor do contrato"></div>
                     <div class="field form-full"><label>Observações</label><textarea id="fObs"
                             placeholder="Informações adicionais..." style="min-height:60px;"></textarea></div>
