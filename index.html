@@ -4,7 +4,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-     <link rel="icon" type="image/png" href="img/prefeitura.png">
+    <link rel="icon" type="image/png" href="img/prefeitura.png">
     <title>Prefeitura de Oriximiná — Gestão de Contratos</title>
 
     <link rel="stylesheet" href="style.css">
@@ -101,6 +101,16 @@
                         <span class="nav-icon"><i class="bi bi-download"></i></span> Exportar
                     </button>
                 </div>
+                
+                <div class="nav-section-title">1doc</div>
+                <button class="nav-item"
+                    onclick="window.open('https://oriximina.1doc.com.br/b.php?s=oriximina&pg=o/login&erro=t', '_blank')">
+
+                    <span class="nav-icon">
+                        <img src="img/1doc.png" class="icon-1doc">
+                    </span>
+                    Acesso ao 1Doc
+                </button>
             </nav>
 
             <div class="sidebar-footer">
@@ -174,6 +184,9 @@
                                 <option value="aviso">Aviso (21-30 dias)</option>
                                 <option value="ok">Normal (>30 dias)</option>
                             </select>
+                            <button class="btn-sm btn-success" onclick="imprimirContratos()">
+                                <i class="bi bi-printer"></i> Imprimir
+                            </button>
                             <button class="btn-sm btn-accent" onclick="abrirModalCadastro()">+ Novo</button>
                         </div>
                     </div>

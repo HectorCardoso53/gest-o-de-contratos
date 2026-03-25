@@ -573,6 +573,158 @@ function changePage(p) {
   renderTabela();
 }
 
+
+window.imprimirContratos = function () {
+
+  const search = document.getElementById("searchInput").value.toLowerCase();
+  const situacao = document.getElementById("filterSituacao").value;
+
+  let data = [...contratos];
+
+  if (search) {
+    data = data.filter(c =>
+      Object.values(c).join(" ").toLowerCase().includes(search)
+    );
+  }
+
+  if (situacao) {
+    data = data.filter(c => c.situacao === situacao);
+  }
+
+  const linhas = data.map(c => `
+    <tr>
+      <td>${c.processo || "-"}</td>
+      <td>${c.contrato || "-"}</td>
+      <td>${c.responsavel || "-"}</td>
+      <td>${c.contratada || "-"}</td>
+      <td>${c.cnpj || "-"}</td>
+      <td>${c.objeto || "-"}</td>
+      <td>${c.setor || "-"}</td>
+      <td>${c.modalidade || "-"}</td>
+      <td>${c.vigInicial || "-"}</td>
+      <td>${c.vigFinal || "-"}</td>
+    </tr>
+  `).join("");
+
+  const dataAtual = new Date().toLocaleDateString("pt-BR");
+
+  const w = window.open("", "_blank");
+
+  w.document.write(`
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+<meta charset="UTF-8">
+<title>Notificação de Contratos</title>
+
+<style>
+  body{
+    font-family: Arial;
+    font-size: 12px;
+    margin: 20px;
+  }
+
+  .header{
+    text-align: center;
+    margin-bottom: 20px;
+  }
+
+  .header img{
+    width: 60px;
+    margin-bottom: 5px;
+  }
+
+  .titulo{
+    font-weight: bold;
+    text-align: center;
+    margin: 15px 0;
+  }
+
+  .texto{
+    margin: 15px 0;
+    text-align: justify;
+    line-height: 1.5;
+  }
+
+  table{
+    width:100%;
+    border-collapse: collapse;
+    margin-top: 15px;
+  }
+
+  th, td{
+    border:1px solid #000;
+    padding:6px;
+    font-size:11px;
+  }
+
+  th{
+    background:#eee;
+  }
+
+  .footer{
+    margin-top: 40px;
+    text-align: right;
+  }
+</style>
+
+</head>
+
+<body>
+
+<div class="header">
+  <img src="img/prefeitura.png">
+  <div><strong>Prefeitura Municipal de Oriximiná</strong></div>
+  <div>Secretaria Municipal de Finanças e Desenvolvimento Financeiro</div>
+</div>
+
+<div class="titulo">
+  NOTIFICAÇÃO DE FIM DE VIGÊNCIA CONTRATUAL
+</div>
+
+<div class="texto">
+  Considerando o encerramento da vigência dos contratos abaixo relacionados,
+  solicita-se a manifestação dos responsáveis para fins de instrução e eventual
+  confecção de processo administrativo de aditivo de prazo, quando necessário.
+</div>
+
+<table>
+  <thead>
+    <tr>
+      <th>Processo</th>
+      <th>Contrato</th>
+      <th>Fiscal</th>
+      <th>Contratada</th>
+      <th>CNPJ/CPF</th>
+      <th>Objeto</th>
+      <th>Setor</th>
+      <th>Modalidade</th>
+      <th>Vig. Inicial</th>
+      <th>Vig. Final</th>
+    </tr>
+  </thead>
+  <tbody>
+    ${linhas}
+  </tbody>
+</table>
+
+<div class="footer">
+  Oriximiná - PA, ${dataAtual}
+</div>
+
+<script>
+  window.onload = function(){
+    window.print();
+  }
+</script>
+
+</body>
+</html>
+  `);
+
+  w.document.close();
+};
+
 async function excluirContrato(id) {
   if (!confirm("Tem certeza que deseja excluir este contrato?")) return;
 
