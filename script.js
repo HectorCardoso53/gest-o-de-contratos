@@ -410,13 +410,26 @@ function renderTabela() {
   const sit = document.getElementById("filterSituacao").value;
   const alerta = document.getElementById("filterAlerta").value;
 
-  if (search)
-    data = data.filter((c) =>
-      [c.contrato, c.contratada, c.objeto, c.setor, c.cnpj]
-        .join(" ")
-        .toLowerCase()
-        .includes(search),
-    );
+  if (search) {
+  data = data.filter((c) => {
+    const texto = [
+      c.processo,
+      c.contrato,
+      c.contratada,
+      c.cnpj,
+      c.objeto,
+      c.setor,
+      c.modalidade,
+      c.responsavel,
+      c.situacao,
+    ]
+      .join(" ")
+      .toLowerCase();
+
+    return texto.includes(search);
+  });
+}
+
   if (sit) data = data.filter((c) => c.situacao === sit);
   if (alerta) {
     data = data.filter((c) => {
@@ -532,7 +545,7 @@ function renderTabela() {
   </td>
 
   <td>
-    <div style="display:flex;gap:6px;">
+    <div style="display:flex;flex-direction:column;gap:6px;">
       <button class="btn-sm btn-view" onclick="verDetalhe('${realIdx}')">👁</button>
       <button class="btn-sm btn-edit" onclick="editarContrato('${realIdx}')">✏️</button>
       <button class="btn-sm btn-danger-sm" onclick="excluirContrato('${realIdx}')">🗑</button>

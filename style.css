@@ -30,11 +30,23 @@ body {
 }
 
 .col-responsavel{
-  max-width:180px;
+  max-width:320px;
   white-space:normal;
   word-break:break-word;
-  line-height:1.3;
+  line-height:1.4;
 }
+
+
+/* FISCAL (mais espaço) */
+th:nth-child(3), td:nth-child(3){
+  width: 320px;
+}
+
+/* OBJETO (reduz um pouco) */
+th:nth-child(6), td:nth-child(6){
+  width: 220px;
+}
+
 
 /* ─── SCROLLBAR ─── */
 ::-webkit-scrollbar { width: 6px; }
@@ -396,6 +408,8 @@ body {
   margin-bottom: 16px; flex-wrap: wrap; gap: 12px;
 }
 
+
+
 .table-header h3 { font-size: 16px; font-weight: 700; }
 
 .table-actions { display: flex; gap: 10px; flex-wrap: wrap; }
@@ -557,12 +571,7 @@ tbody tr:last-child td { border-bottom: none; }
   position: fixed; top: 20px; right: 20px; z-index: 9999;
   display: flex; flex-direction: column; gap: 8px;
 }
-.col-responsavel{
-  max-width:180px;
-  white-space:normal;
-  word-break:break-word;
-  line-height:1.3;
-}
+
 
 .toast-item {
   min-width: 280px; padding: 14px 18px;
@@ -662,4 +671,30 @@ tbody tr:last-child td { border-bottom: none; }
   .charts-grid { grid-template-columns: 1fr; }
   .form-grid { grid-template-columns: 1fr; }
 }
+
+
+/* TABELA CONTROLADA */
+.table-wrap table{
+  width: 100%;
+  table-layout: fixed;
+}
+
+/* 🔥 COLUNAS PEQUENAS */
+th:nth-child(1), td:nth-child(1){ width: 110px; } /* processo */
+th:nth-child(2), td:nth-child(2){ width: 110px; } /* contrato */
+th:nth-child(5), td:nth-child(5){ width: 140px; } /* cpf */
+th:nth-child(9), td:nth-child(9){ width: 110px; } /* vig inicial */
+th:nth-child(10), td:nth-child(10){ width: 110px; } /* vig final */
+th:nth-child(11), td:nth-child(11){ width: 130px; } /* valor */
+th:nth-child(12), td:nth-child(12){ width: 110px; } /* situação */
+th:nth-child(13), td:nth-child(13){ width: 90px; } /* ações */
+
+/* 🔥 COLUNAS MÉDIAS */
+th:nth-child(4), td:nth-child(4){ width: 180px; } /* contratada */
+th:nth-child(7), td:nth-child(7){ width: 130px; } /* órgão */
+th:nth-child(8), td:nth-child(8){ width: 140px; } /* modalidade */
+
+/* 🔥 COLUNAS IMPORTANTES */
+th:nth-child(3), td:nth-child(3){ width: 260px; } /* fiscal */
+th:nth-child(6), td:nth-child(6){ width: 220px; } /* objeto */
 
