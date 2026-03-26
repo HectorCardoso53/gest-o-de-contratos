@@ -17,6 +17,11 @@ import {
   doc,
 } from "https://www.gstatic.com/firebasejs/10.12.2/firebase-firestore.js";
 
+import {
+  setPersistence,
+  browserSessionPersistence,
+} from "https://www.gstatic.com/firebasejs/10.12.2/firebase-auth.js";
+
 const firebaseConfig = {
   apiKey: "AIzaSyAn4YFjsLH2NsbXxZMTJtNIQIV0oxXi2cM",
   authDomain: "gestao-de-contratos-4ad66.firebaseapp.com",
@@ -28,6 +33,7 @@ const firebaseConfig = {
 
 const app = initializeApp(firebaseConfig);
 const auth = getAuth(app);
+signOut(auth);
 const db = getFirestore(app);
 
 let currentUser = null;
@@ -101,6 +107,7 @@ async function logar() {
     progress.style.display = "block";
     bar.style.width = "60%";
 
+    await setPersistence(auth, browserSessionPersistence);
     await signInWithEmailAndPassword(auth, email, senha);
 
     bar.style.width = "100%";
@@ -411,24 +418,24 @@ function renderTabela() {
   const alerta = document.getElementById("filterAlerta").value;
 
   if (search) {
-  data = data.filter((c) => {
-    const texto = [
-      c.processo,
-      c.contrato,
-      c.contratada,
-      c.cnpj,
-      c.objeto,
-      c.setor,
-      c.modalidade,
-      c.responsavel,
-      c.situacao,
-    ]
-      .join(" ")
-      .toLowerCase();
+    data = data.filter((c) => {
+      const texto = [
+        c.processo,
+        c.contrato,
+        c.contratada,
+        c.cnpj,
+        c.objeto,
+        c.setor,
+        c.modalidade,
+        c.responsavel,
+        c.situacao,
+      ]
+        .join(" ")
+        .toLowerCase();
 
-    return texto.includes(search);
-  });
-}
+      return texto.includes(search);
+    });
+  }
 
   if (sit) data = data.filter((c) => c.situacao === sit);
   if (alerta) {
@@ -573,25 +580,25 @@ function changePage(p) {
   renderTabela();
 }
 
-
 window.imprimirContratos = function () {
-
   const search = document.getElementById("searchInput").value.toLowerCase();
   const situacao = document.getElementById("filterSituacao").value;
 
   let data = [...contratos];
 
   if (search) {
-    data = data.filter(c =>
-      Object.values(c).join(" ").toLowerCase().includes(search)
+    data = data.filter((c) =>
+      Object.values(c).join(" ").toLowerCase().includes(search),
     );
   }
 
   if (situacao) {
-    data = data.filter(c => c.situacao === situacao);
+    data = data.filter((c) => c.situacao === situacao);
   }
 
-  const linhas = data.map(c => `
+  const linhas = data
+    .map(
+      (c) => `
     <tr>
       <td>${c.processo || "-"}</td>
       <td>${c.contrato || "-"}</td>
@@ -604,7 +611,9 @@ window.imprimirContratos = function () {
       <td>${c.vigInicial || "-"}</td>
       <td>${c.vigFinal || "-"}</td>
     </tr>
-  `).join("");
+  `,
+    )
+    .join("");
 
   const dataAtual = new Date().toLocaleDateString("pt-BR");
 
@@ -615,7 +624,7 @@ window.imprimirContratos = function () {
 <html lang="pt-BR">
 <head>
 <meta charset="UTF-8">
-<title>Notificação de Contratos</title>
+<title>Relatório de Contrato</title>
 
 <style>
   body{
@@ -639,6 +648,25 @@ window.imprimirContratos = function () {
     text-align: center;
     margin: 15px 0;
   }
+
+  table {
+  width: 100%;
+  border-collapse: collapse;
+  margin-top: 15px;
+  table-layout: fixed; /* ESSENCIAL */
+}
+
+th, td {
+  border:1px solid #000;
+  padding:6px;
+  font-size:11px;
+  word-wrap: break-word;
+}
+
+th:nth-child(6), td:nth-child(6){ width: 200px; } /* Objeto maior */
+th:nth-child(7), td:nth-child(7){ width: 80px; }  /* Setor menor */
+th:nth-child(5), td:nth-child(5){ width: 120px; } /* CNPJ */
+
 
   .texto{
     margin: 15px 0;
@@ -679,13 +707,8 @@ window.imprimirContratos = function () {
 </div>
 
 <div class="titulo">
-  NOTIFICAÇÃO DE FIM DE VIGÊNCIA CONTRATUAL
-</div>
-
-<div class="texto">
-  Considerando o encerramento da vigência dos contratos abaixo relacionados,
-  solicita-se a manifestação dos responsáveis para fins de instrução e eventual
-  confecção de processo administrativo de aditivo de prazo, quando necessário.
+  RELATÓRIO DE CONTRATOS
+  <div class="subtitulo">(por fiscais)</div>
 </div>
 
 <table>
@@ -705,6 +728,147 @@ window.imprimirContratos = function () {
   </thead>
   <tbody>
     ${linhas}
+  </tbody>
+</table>
+
+<div class="footer">
+  Oriximiná - PA, ${dataAtual}
+</div>
+
+<script>
+  window.onload = function(){
+    window.print();
+  }
+</script>
+
+</body>
+</html>
+  `);
+
+  w.document.close();
+};
+
+window.gerarNotificacaoContrato = function (id) {
+  const c = contratos.find((x) => x.id === id);
+
+  if (!c) {
+    alert("Contrato não encontrado");
+    return;
+  }
+
+  const dataAtual = new Date().toLocaleDateString("pt-BR");
+
+  const w = window.open("", "_blank");
+
+  w.document.write(`
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+<meta charset="UTF-8">
+<title>Notificação</title>
+
+<style>
+ @page {
+    size: A4 portrait;
+    margin: 20mm;
+  }
+
+  body{
+    font-family: Arial;
+    font-size: 12px;
+    margin: 20px;
+  }
+
+  .header{
+    text-align:center;
+    margin-bottom:20px;
+  }
+
+  .header img{
+    width:60px;
+  }
+
+  .titulo{
+    text-align:center;
+    font-weight:bold;
+    margin:15px 0;
+    font-size:16px;
+  }
+
+  .texto{
+    margin:15px 0;
+    text-align:justify;
+  }
+
+  table{
+    width:100%;
+    border-collapse: collapse;
+    margin-top:15px;
+  }
+
+  th, td{
+    border:1px solid #000;
+    padding:6px;
+    font-size:11px;
+  }
+
+  th{
+    background:#eee;
+  }
+
+  .footer{
+    margin-top:40px;
+    text-align:right;
+  }
+
+</style>
+</head>
+
+<body>
+
+<div class="header">
+  <img src="img/prefeitura.png">
+  <div><strong>Prefeitura Municipal de Oriximiná</strong></div>
+  <div>Secretaria Municipal de Finanças e Desenvolvimento Financeiro</div>
+</div>
+
+<div class="titulo">
+  NOTIFICAÇÃO DE FIM DE VIGÊNCIA CONTRATUAL
+</div>
+
+<div class="texto">
+  Considerando o encerramento da vigência do contrato abaixo relacionado,
+  solicita-se a manifestação do fiscal responsável quanto à necessidade de aditivo.
+</div>
+
+<table>
+  <thead>
+    <tr>
+      <th>Processo</th>
+      <th>Contrato</th>
+      <th>Fiscal</th>
+      <th>Contratada</th>
+      <th>CNPJ</th>
+      <th>Objeto</th>
+      <th>Setor</th>
+      <th>Modalidade</th>
+      <th>Vig. Inicial</th>
+      <th>Vig. Final</th>
+    </tr>
+  </thead>
+  <tbody>
+    <tr>
+      <td>${c.processo || "-"}</td>
+      <td>${c.contrato || "-"}</td>
+      <td>${c.responsavel || "-"}</td>
+      <td>${c.contratada || "-"}</td>
+      <td>${c.cnpj || "-"}</td>
+      <td>${c.objeto || "-"}</td>
+      <td>${c.setor || "-"}</td>
+      <td>${c.modalidade || "-"}</td>
+      <td>${c.vigInicial || "-"}</td>
+      <td>${c.vigFinal || "-"}</td>
+    </tr>
   </tbody>
 </table>
 
@@ -803,26 +967,69 @@ function buildAlertSection(title, items, type) {
     warning: "var(--warning)",
     expired: "var(--text3)",
   };
+
   const rows = items
     .map((c) => {
       const d = diasRestantes(c.vigFinal);
-      return `<div style="display:flex;align-items:center;justify-content:space-between;padding:14px 16px;border-bottom:1px solid var(--border);">
-      <div>
-        <div style="font-weight:600;font-size:13px;">${c.contratada || "—"} <span style="font-family:var(--mono);font-size:11px;color:var(--text2);">[${c.contrato || ""}]</span></div>
-        <div style="font-size:12px;color:var(--text2);margin-top:2px;">${c.objeto || ""} ${c.setor ? "• " + c.setor : ""}</div>
-      </div>
-      <div style="text-align:right;">
-        <div style="font-family:var(--mono);font-size:13px;font-weight:700;color:${colors[type]};">${d < 0 ? "Expirado há " + Math.abs(d) + " dias" : d + " dias restantes"}</div>
-        <div style="font-size:11px;color:var(--text2);">${c.vigFinal ? new Date(c.vigFinal + "T12:00:00").toLocaleDateString("pt-BR") : ""}</div>
-      </div>
-    </div>`;
+
+      return `
+<div style="display:flex;align-items:center;justify-content:space-between;padding:14px 16px;border-bottom:1px solid var(--border);">
+
+  <!-- ESQUERDA -->
+  <div style="flex:1;min-width:0;">
+    
+    <div style="font-weight:600;font-size:13px;">
+      ${c.contratada || "—"} 
+      <span style="font-family:var(--mono);font-size:11px;color:var(--text2);">
+        [${c.contrato || ""}]
+      </span>
+    </div>
+
+    <div style="font-size:12px;color:var(--text2);margin-top:2px;">
+      ${c.objeto || ""} ${c.setor ? " • " + c.setor : ""}
+    </div>
+
+    <!-- 🔥 BOTÃO -->
+    <button 
+  onclick="gerarNotificacaoContrato('${c.id}')"
+  style="margin-top:6px;padding:5px 10px;font-size:11px;background:var(--primary);color:#fff;border:none;border-radius:4px;cursor:pointer;display:flex;align-items:center;gap:5px;">
+  
+  <i class="bi bi-share-fill"></i>
+  Compartilhar
+
+</button>
+
+  </div>
+
+  <!-- DIREITA -->
+  <div style="text-align:right;margin-left:10px;">
+    <div style="font-family:var(--mono);font-size:13px;font-weight:700;color:${colors[type]};">
+      ${d < 0 ? "Expirado há " + Math.abs(d) + " dias" : d + " dias restantes"}
+    </div>
+
+    <div style="font-size:11px;color:var(--text2);">
+      ${
+        c.vigFinal
+          ? new Date(c.vigFinal + "T12:00:00").toLocaleDateString("pt-BR")
+          : ""
+      }
+    </div>
+  </div>
+
+</div>`;
     })
     .join("");
 
-  return `<div style="margin-bottom:24px;">
-    <h3 style="font-size:14px;font-weight:700;margin-bottom:12px;color:${colors[type]};">${title}</h3>
-    <div style="background:var(--surface);border:1px solid var(--border);border-radius:12px;overflow:hidden;">${rows}</div>
-  </div>`;
+  return `
+<div style="margin-bottom:24px;">
+  <h3 style="font-size:14px;font-weight:700;margin-bottom:12px;color:${colors[type]};">
+    ${title}
+  </h3>
+
+  <div style="background:var(--surface);border:1px solid var(--border);border-radius:12px;overflow:hidden;">
+    ${rows}
+  </div>
+</div>`;
 }
 
 /* ─── RELATÓRIOS ─── */
