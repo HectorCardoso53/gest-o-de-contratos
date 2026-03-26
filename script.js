@@ -22,6 +22,13 @@ import {
   browserSessionPersistence,
 } from "https://www.gstatic.com/firebasejs/10.12.2/firebase-auth.js";
 
+import {
+  getStorage,
+  ref,
+  uploadBytes,
+  getDownloadURL,
+} from "https://www.gstatic.com/firebasejs/10.12.2/firebase-storage.js";
+
 const firebaseConfig = {
   apiKey: "AIzaSyAn4YFjsLH2NsbXxZMTJtNIQIV0oxXi2cM",
   authDomain: "gestao-de-contratos-4ad66.firebaseapp.com",
@@ -33,7 +40,6 @@ const firebaseConfig = {
 
 const app = initializeApp(firebaseConfig);
 const auth = getAuth(app);
-signOut(auth);
 const db = getFirestore(app);
 
 let currentUser = null;
@@ -43,8 +49,10 @@ let currentPage = 1;
 const PER_PAGE = 12;
 let charts = {};
 let contratos = [];
+let contratoSelecionado = null;
+let analises = [];
 
-onAuthStateChanged(auth, (user) => {
+onAuthStateChanged(auth, async (user) => {
   if (user) {
     currentUser = user;
 
@@ -53,17 +61,108 @@ onAuthStateChanged(auth, (user) => {
 
     document.getElementById("userName").textContent = user.email;
     document.getElementById("userRole").textContent = "Usuário";
-    document.getElementById("userAvatar").textContent = user.email
-      .charAt(0)
-      .toUpperCase();
+    document.getElementById("userAvatar").textContent =
+      user.email.charAt(0).toUpperCase();
 
-    initApp();
-    carregarContratosFirebase();
+    await initApp(); // 🔥 IMPORTANTE
   } else {
     document.getElementById("app").style.display = "none";
     document.getElementById("loginScreen").style.display = "flex";
   }
 });
+
+async function carregarAnalisesFirebase() {
+  const snapshot = await getDocs(collection(db, "analises"));
+
+  analises = [];
+
+  snapshot.forEach((docSnap) => {
+    analises.push({
+      id: docSnap.id,
+      ...docSnap.data(),
+    });
+  });
+}
+
+function renderAnalises(lista) {
+  const container = document.getElementById("analisesContent");
+
+  if (!lista.length) {
+    container.innerHTML = "<p>Nenhuma análise encontrada.</p>";
+    return;
+  }
+
+  container.innerHTML = lista
+    .map(
+      (a) => `
+    <div style="background:var(--surface);padding:15px;margin-bottom:10px;border-radius:8px;border:1px solid var(--border);">
+      
+      <div><strong>Contrato:</strong> ${a.contratoId}</div>
+      <div><strong>Decisão:</strong> ${a.decisao}</div>
+      <div><strong>Status:</strong> ${a.status}</div>
+      <div><strong>Justificativa:</strong> ${a.justificativa}</div>
+
+      ${a.arquivo ? `<a href="${a.arquivo}" target="_blank">📄 Ver PDF</a>` : "Sem anexo"}
+
+    </div>
+  `,
+    )
+    .join("");
+}
+
+function renderArquivados() {
+  const arquivados = contratos.filter((c) => c.arquivado);
+
+  const container = document.getElementById("arquivadosContent");
+
+  if (!arquivados.length) {
+    container.innerHTML = "<p>Nenhum contrato arquivado.</p>";
+    return;
+  }
+
+  container.innerHTML = arquivados
+    .map((c) => {
+
+      // 🔥 VERIFICA SE TEM ANÁLISE
+      const analise = analises.find(a => a.contratoId === c.id);
+
+      return `
+    <div style="background:var(--surface);padding:12px;margin-bottom:10px;border-radius:8px;border:1px solid var(--border);">
+      
+      <div style="font-weight:600;">${c.contratada}</div>
+      <div style="font-size:13px;color:var(--text2);margin:5px 0;">
+        ${c.objeto || ""}
+      </div>
+
+      <div style="font-size:12px;color:var(--text2);margin-bottom:10px;">
+        Contrato: ${c.contrato}
+      </div>
+
+      <div style="display:flex;gap:6px;flex-wrap:wrap;">
+
+        ${
+          analise
+          ? `
+        <button onclick="verAnalise('${c.id}')"
+          style="padding:6px 12px;background:#0ea5e9;color:#fff;border:none;border-radius:6px;cursor:pointer;display:flex;align-items:center;gap:5px;">
+          <i class="bi bi-eye"></i> Ver
+        </button>
+        `
+          : ""
+        }
+
+        <button onclick="desarquivarContrato('${c.id}')"
+          style="padding:6px 12px;background:#10b981;color:#fff;border:none;border-radius:6px;cursor:pointer;display:flex;align-items:center;gap:5px;">
+          <i class="bi bi-arrow-counterclockwise"></i> Desarquivar
+        </button>
+
+      </div>
+
+    </div>
+  `;
+    })
+    .join("");
+}
 
 // Esperar DOM carregar
 document.addEventListener("DOMContentLoaded", () => {
@@ -126,11 +225,16 @@ async function logar() {
 }
 
 /* ─── INIT ─── */
-function initApp() {
+async function initApp() {
   updateTopDate();
   setInterval(updateTopDate, 30000);
+
+  // 🔥 CARREGA TUDO ANTES DE RENDERIZAR
+  await carregarContratosFirebase();
+  await carregarAnalisesFirebase();
+
+  // 🔥 SÓ AGORA RENDERIZA
   goTo("dashboard");
-  // seed sample data
 }
 
 function updateTopDate() {
@@ -173,6 +277,13 @@ const PAGES = {
     subtitle: "Exporte dados do sistema",
     nav: 4,
   },
+
+  arquivados: {
+    el: "pageArquivados",
+    title: "Contratos Arquivados",
+    subtitle: "Contratos que foram arquivados",
+    nav: 5,
+  },
 };
 
 function goTo(page) {
@@ -184,7 +295,11 @@ function goTo(page) {
     .forEach((n) => n.classList.remove("active"));
   const cfg = PAGES[page];
   document.getElementById(cfg.el).classList.add("active");
-  document.querySelectorAll(".nav-item")[cfg.nav].classList.add("active");
+  const navItems = document.querySelectorAll(".nav-item");
+
+  if (navItems[cfg.nav]) {
+    navItems[cfg.nav].classList.add("active");
+  }
   document.getElementById("pageTitle").textContent = cfg.title;
   document.getElementById("pageSubtitle").textContent = cfg.subtitle;
 
@@ -195,15 +310,18 @@ function goTo(page) {
   if (page === "alertas") renderAlertas();
   if (page === "relatorios") renderRelatorios();
   updateAlertBadge();
+
+  if (page === "arquivados") renderArquivados();
 }
 
 /* ─── DASHBOARD ─── */
 function renderDashboard() {
-  const data = contratos;
+  const data = contratos.filter((c) => !c.arquivado);
   const hoje = new Date();
 
   const total = data.length;
   const ativos = data.filter((c) => c.situacao === "Ativo").length;
+
   const criticos = data.filter((c) => {
     const d = diasRestantes(c.vigFinal);
     return d !== null && d >= 0 && d <= 20;
@@ -285,16 +403,21 @@ function renderDashboard() {
 }
 
 function updateAlertBadge() {
-  const data = contratos;
+  const data = contratos.filter((c) => !c.arquivado);
+
   const n = data.filter((c) => {
     const d = diasRestantes(c.vigFinal);
     return d !== null && d >= 0 && d <= 30;
   }).length;
+
   const badge = document.getElementById("alertBadge");
+
   if (n > 0) {
     badge.style.display = "inline-block";
     badge.textContent = n;
-  } else badge.style.display = "none";
+  } else {
+    badge.style.display = "none";
+  }
 }
 
 function renderChartSituacao(data) {
@@ -412,7 +535,7 @@ function renderChartValores(data) {
 
 /* ─── TABELA ─── */
 function renderTabela() {
-  let data = contratos;
+  let data = contratos.filter((c) => !c.arquivado);
   const search = document.getElementById("searchInput").value.toLowerCase();
   const sit = document.getElementById("filterSituacao").value;
   const alerta = document.getElementById("filterAlerta").value;
@@ -905,7 +1028,11 @@ async function excluirContrato(id) {
 }
 
 function renderAlertas() {
-  const data = contratos;
+  const container = document.getElementById("alertasContent");
+
+  container.innerHTML = ""; // 🔥 LIMPA ANTES
+
+  const data = contratos.filter((c) => !c.arquivado);
 
   const criticos = data.filter((c) => {
     const d = diasRestantes(c.vigFinal);
@@ -972,6 +1099,9 @@ function buildAlertSection(title, items, type) {
     .map((c) => {
       const d = diasRestantes(c.vigFinal);
 
+      // 🔥 AQUI É O PONTO CHAVE
+      const analise = analises.find(a => a.contratoId === c.id);
+
       return `
 <div style="display:flex;align-items:center;justify-content:space-between;padding:14px 16px;border-bottom:1px solid var(--border);">
 
@@ -989,15 +1119,44 @@ function buildAlertSection(title, items, type) {
       ${c.objeto || ""} ${c.setor ? " • " + c.setor : ""}
     </div>
 
-    <!-- 🔥 BOTÃO -->
-    <button 
-  onclick="gerarNotificacaoContrato('${c.id}')"
-  style="margin-top:6px;padding:5px 10px;font-size:11px;background:var(--primary);color:#fff;border:none;border-radius:4px;cursor:pointer;display:flex;align-items:center;gap:5px;">
-  
-  <i class="bi bi-share-fill"></i>
-  Compartilhar
+    <!-- 🔥 BOTÕES -->
+    <div style="display:flex;gap:6px;flex-wrap:wrap;margin-top:6px;">
 
-</button>
+      <button 
+        onclick="gerarNotificacaoContrato('${c.id}')"
+        style="padding:5px 10px;font-size:11px;background:var(--primary);color:#fff;border:none;border-radius:4px;cursor:pointer;display:flex;align-items:center;gap:5px;">
+        <i class="bi bi-share-fill"></i>
+        Compartilhar
+      </button>
+
+      <button 
+        onclick="abrirAnalise('${c.id}')"
+        style="padding:5px 10px;font-size:11px;background:#64748b;color:#fff;border:none;border-radius:4px;cursor:pointer;display:flex;align-items:center;gap:5px;">
+        <i class="bi bi-folder2-open"></i>
+        Análise
+      </button>
+
+      <button 
+        onclick="arquivarContrato('${c.id}')"
+        style="padding:5px 10px;font-size:11px;background:#334155;color:#fff;border:none;border-radius:4px;cursor:pointer;display:flex;align-items:center;gap:5px;">
+        <i class="bi bi-archive"></i>
+        Arquivar
+      </button>
+
+      ${
+        analise
+          ? `
+      <button 
+        onclick="verAnalise('${c.id}')"
+        style="padding:5px 10px;font-size:11px;background:#0ea5e9;color:#fff;border:none;border-radius:4px;cursor:pointer;display:flex;align-items:center;gap:5px;">
+        <i class="bi bi-eye"></i>
+        Ver
+      </button>
+      `
+          : ""
+      }
+
+    </div>
 
   </div>
 
@@ -1034,7 +1193,7 @@ function buildAlertSection(title, items, type) {
 
 /* ─── RELATÓRIOS ─── */
 function renderRelatorios() {
-  const data = contratos;
+  const data = contratos.filter((c) => !c.arquivado);
   const aditivados = data.filter((c) => c.situacao === "Aditivado").length;
   const suspensos = data.filter((c) => c.situacao === "Suspenso").length;
   const finalizados = data.filter((c) => c.situacao === "Finalizado").length;
@@ -1137,7 +1296,7 @@ function renderRelatorios() {
       ],
     },
     options: {
-      indexAxis: "y",
+      indexAxis: "x",
       plugins: { legend: { display: false } },
       scales: {
         x: {
@@ -1153,6 +1312,159 @@ function renderRelatorios() {
   });
 }
 
+function abrirAnalise(id) {
+  const c = contratos.find((x) => x.id === id);
+
+  contratoSelecionado = id;
+
+  document.getElementById("modalAnaliseBody").innerHTML = `
+    
+    <div class="analise-header">
+      <img src="img/prefeitura.png" class="analise-logo">
+      <div class="analise-header-text">
+        <strong>Prefeitura Municipal de Oriximiná</strong>
+        <span>Secretaria Municipal de Finanças</span>
+      </div>
+    </div>
+
+    <div class="analise-title">
+      ANÁLISE DE CONTRATO
+    </div>
+
+    <!-- 🔥 BLOCO COMPLETO -->
+    <div class="analise-info">
+      <div><span>Processo:</span> ${c.processo || "-"}</div>
+      <div><span>Contrato:</span> ${c.contrato}</div>
+      <div><span>Contratada:</span> ${c.contratada}</div>
+      <div><span>Setor:</span> ${c.setor || "-"}</div>
+      <div><span>Vigência:</span> ${c.vigInicial || "-"} até ${c.vigFinal || "-"}</div>
+
+      <div class="objeto">
+        <span>Objeto:</span>
+        <p>${c.objeto || "Não informado"}</p>
+      </div>
+    </div>
+
+    <div class="analise-form">
+
+      <label>Decisão</label>
+      <select id="decisao" class="input">
+        <option value="renovar">Renovar</option>
+        <option value="encerrar">Encerrar</option>
+      </select>
+
+      <label>Justificativa</label>
+      <textarea id="justificativa" class="input textarea"></textarea>
+
+      <label>Anexo</label>
+      <input type="file" id="anexo" class="input-file">
+
+      <button onclick="salvarAnalise()" class="btn-primary">
+        Salvar Análise
+      </button>
+
+    </div>
+  `;
+
+  abrirModal("modalAnalise");
+}
+
+async function salvarAnalise() {
+  const fileInput = document.getElementById("anexo");
+  const file = fileInput.files[0];
+  const decisao = document.getElementById("decisao").value;
+  const justificativa = document.getElementById("justificativa").value;
+
+  let statusFinal = "";
+
+  if (decisao === "renovar") {
+    statusFinal = "em renovação";
+  } else if (decisao === "encerrar") {
+    statusFinal = "encerrado";
+  }
+
+  if (!contratoSelecionado) {
+    alert("Contrato não definido");
+    return;
+  }
+
+  let fileURL = null;
+
+  try {
+    // 🔥 SE TIVER ARQUIVO → FAZ UPLOAD
+    if (file) {
+      const storage = getStorage();
+
+      const fileRef = ref(
+        storage,
+        `analises/${contratoSelecionado}/${Date.now()}_${file.name}`,
+      );
+
+      await uploadBytes(fileRef, file);
+
+      fileURL = await getDownloadURL(fileRef);
+    }
+
+    // 🔥 SALVA NO FIRESTORE
+    await addDoc(collection(db, "analises"), {
+      contratoId: contratoSelecionado,
+      decisao,
+      justificativa,
+      arquivo: fileURL, // agora existe
+      status: statusFinal,
+      criadoEm: new Date(),
+      criadoPor: currentUser.uid,
+    });
+
+    toast("Análise salva com sucesso!", "success");
+    fecharModal("modalAnalise");
+  } catch (error) {
+    console.error(error);
+    toast("Erro ao salvar análise.", "error");
+  }
+}
+
+async function arquivarContrato(id) {
+  try {
+    const contratoRef = doc(db, "contratos", id);
+
+    await updateDoc(contratoRef, {
+      arquivado: true,
+    });
+
+    toast("Contrato arquivado!", "success");
+
+    await carregarContratosFirebase();
+    await carregarAnalisesFirebase();
+
+    renderAlertas();
+    renderArquivados();
+
+  } catch (error) {
+    console.error(error);
+    toast("Erro ao arquivar.", "error");
+  }
+}
+
+async function desarquivarContrato(id) {
+  try {
+    const contratoRef = doc(db, "contratos", id);
+
+    await updateDoc(contratoRef, {
+      arquivado: false,
+    });
+
+    toast("Contrato desarquivado!", "success");
+
+    await carregarContratosFirebase();
+
+    renderAlertas();
+    renderArquivados();
+  } catch (error) {
+    console.error(error);
+    toast("Erro ao desarquivar.", "error");
+  }
+}
 /* ─── CADASTRO ─── */
 function abrirModalCadastro() {
   editingIndex = null;
@@ -1277,9 +1589,22 @@ async function carregarContratosFirebase() {
     });
   });
 
-  renderTabela();
-  renderDashboard();
-  updateAlertBadge();
+  // 🔥 ESSENCIAL
+  await carregarAnalisesFirebase();
+
+
+}
+
+async function uploadPDF(blob, contratoId) {
+  const storage = getStorage();
+
+  const fileRef = ref(storage, `analises/${contratoId}/${Date.now()}.pdf`);
+
+  await uploadBytes(fileRef, blob);
+
+  const url = await getDownloadURL(fileRef);
+
+  return url;
 }
 
 /* ─── DETALHE ─── */
@@ -1446,6 +1771,60 @@ function exportarHTML() {
   w.print();
 }
 
+function verAnalise(contratoId) {
+  const analise = analises.find(a => a.contratoId === contratoId);
+
+  if (!analise) {
+    alert("Nenhuma análise encontrada");
+    return;
+  }
+
+  document.getElementById("modalAnaliseBody").innerHTML = `
+    
+    <div class="analise-header">
+      <img src="img/prefeitura.png" class="analise-logo">
+      <div class="analise-title">
+        Prefeitura Municipal de Oriximiná
+        <span>Análise de Contrato</span>
+      </div>
+    </div>
+
+    <div class="analise-card">
+      
+      <div class="analise-row">
+        <span>Status</span>
+        <strong class="status">${analise.status}</strong>
+      </div>
+
+      <div class="analise-row">
+        <span>Decisão</span>
+        <strong>${analise.decisao}</strong>
+      </div>
+
+      <div class="analise-row column">
+        <span>Justificativa</span>
+        <div class="justificativa">
+          ${analise.justificativa || "Não informada"}
+        </div>
+      </div>
+
+      ${
+        analise.arquivo 
+        ? `
+        <a href="${analise.arquivo}" target="_blank" class="btn-anexo">
+          <i class="bi bi-file-earmark-pdf"></i>
+          Abrir Anexo
+        </a>
+        `
+        : `<div class="sem-anexo">Nenhum anexo enviado</div>`
+      }
+
+    </div>
+  `;
+
+  abrirModal("modalAnalise");
+}
+
 /* ─── MODAIS ─── */
 function abrirModal(id) {
   document.getElementById(id).classList.add("open");
@@ -1547,3 +1926,8 @@ window.salvarContrato = salvarContrato;
 
 window.exportarCSV = exportarCSV;
 window.exportarHTML = exportarHTML;
+window.abrirAnalise = abrirAnalise;
+window.salvarAnalise = salvarAnalise;
+window.arquivarContrato = arquivarContrato;
+window.desarquivarContrato = desarquivarContrato;
+window.verAnalise = verAnalise;

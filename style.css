@@ -703,3 +703,205 @@ th:nth-child(8), td:nth-child(8){ width: 140px; } /* modalidade */
 th:nth-child(3), td:nth-child(3){ width: 260px; } /* fiscal */
 th:nth-child(6), td:nth-child(6){ width: 220px; } /* objeto */
 
+
+
+.analise-header{
+  display:flex;
+  align-items:center;
+  gap:12px;
+  margin-bottom:16px;
+  border-bottom:1px solid var(--border);
+  padding-bottom:10px;
+}
+
+.analise-logo{
+  width:50px;
+}
+
+.analise-title{
+  font-weight:600;
+  font-size:14px;
+}
+
+.analise-title span{
+  display:block;
+  font-size:12px;
+  color:var(--text2);
+}
+
+.analise-card{
+  background:var(--surface);
+  border:1px solid var(--border);
+  border-radius:12px;
+  padding:16px;
+  display:flex;
+  flex-direction:column;
+  gap:12px;
+}
+
+.analise-row{
+  display:flex;
+  justify-content:space-between;
+  font-size:13px;
+}
+
+.analise-row span{
+  color:var(--text2);
+}
+
+.analise-row.column{
+  flex-direction:column;
+}
+
+.justificativa{
+  margin-top:5px;
+  background:rgba(255,255,255,0.03);
+  padding:8px;
+  border-radius:6px;
+  font-size:12px;
+}
+
+.status{
+  text-transform:capitalize;
+}
+
+.btn-anexo{
+  margin-top:12px;
+  display:flex;
+  align-items:center;
+  justify-content:center;
+  gap:8px;
+
+  width:100%;
+  padding:10px;
+
+  background:linear-gradient(135deg, #ef4444, #dc2626);
+  color:#fff;
+
+  border:none;
+  border-radius:8px;
+
+  font-size:13px;
+  font-weight:600;
+  text-decoration:none;
+
+  cursor:pointer;
+  transition:all 0.2s ease;
+}
+
+.btn-anexo:hover{
+  transform:translateY(-1px);
+  box-shadow:0 4px 12px rgba(239,68,68,0.3);
+}
+
+.btn-anexo:active{
+  transform:scale(0.98);
+}
+
+.btn-anexo:hover{
+  opacity:0.85;
+}
+
+.sem-anexo{
+  text-align:center;
+  padding:10px;
+  border-radius:6px;
+  background:rgba(255,255,255,0.03);
+  font-size:12px;
+  color:var(--text2);
+}
+
+/* HEADER */
+.analise-header{
+  display:flex;
+  align-items:center;
+  gap:12px;
+  margin-bottom:16px;
+  border-bottom:1px solid var(--border);
+  padding-bottom:10px;
+}
+
+.analise-logo{
+  width:55px;
+}
+
+.analise-header-text strong{
+  font-size:14px;
+  display:block;
+}
+
+.analise-header-text span{
+  font-size:12px;
+  color:var(--text2);
+}
+
+/* TÍTULO */
+.analise-title{
+  text-align:center;
+  font-weight:700;
+  margin-bottom:16px;
+  font-size:14px;
+}
+
+/* INFO */
+.analise-info{
+  background:var(--surface);
+  border:1px solid var(--border);
+  border-radius:8px;
+  padding:10px;
+  margin-bottom:15px;
+  font-size:13px;
+}
+
+.analise-info span{
+  color:var(--text2);
+  margin-right:5px;
+}
+
+/* FORM */
+.analise-form{
+  display:flex;
+  flex-direction:column;
+  gap:10px;
+}
+
+/* INPUT PADRÃO */
+.input{
+  width:100%;
+  padding:8px;
+  border-radius:6px;
+  border:1px solid var(--border);
+  background:var(--bg); /* 🔥 CORRIGE FUNDO */
+  color:var(--text);     /* 🔥 CORRIGE TEXTO */
+  font-size:13px;
+}
+
+.input:focus{
+  outline:none;
+  border-color:var(--primary);
+}
+.textarea{
+  min-height:80px;
+  resize:vertical;
+}
+
+/* FILE */
+.input-file{
+  font-size:12px;
+}
+
+/* BOTÃO */
+.btn-primary{
+  margin-top:10px;
+  padding:10px;
+  border:none;
+  border-radius:6px;
+  background:var(--primary);
+  color:#fff;
+  font-weight:600;
+  cursor:pointer;
+}
+
+.btn-primary:hover{
+  opacity:0.9;
+}

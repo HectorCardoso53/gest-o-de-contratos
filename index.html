@@ -97,11 +97,13 @@
                     <button class="nav-item" onclick="goTo('relatorios')">
                         <span class="nav-icon"><i class="bi bi-graph-up"></i></span> Relatórios
                     </button>
-                    <button class="nav-item" onclick="goTo('exportar')">
-                        <span class="nav-icon"><i class="bi bi-download"></i></span> Exportar
-                    </button>
                 </div>
-                
+
+                <button class="nav-item" onclick="goTo('arquivados')">
+                    <span class="nav-icon"><i class="bi bi-archive"></i></span>
+                    Arquivados
+                </button>
+
                 <div class="nav-section-title">1doc</div>
                 <button class="nav-item"
                     onclick="window.open('https://oriximina.1doc.com.br/b.php?s=oriximina&pg=o/login&erro=t', '_blank')">
@@ -293,8 +295,18 @@
                                 <i class="bi bi-printer"></i> Imprimir
                             </button>
                         </div>
+
+
                     </div>
                 </div>
+
+                <!-- ── ANÁLISES ── -->
+                <div id="pageArquivados" class="page">
+                    <div id="arquivadosContent"></div>
+                </div>
+
+
+                <div id="pageExportar" class="page"></div>
 
             </div><!-- /content -->
         </div><!-- /main -->
@@ -380,6 +392,21 @@
                     onclick="fecharModal('modalDetalhe')">Fechar</button>
                 <button class="btn-sm btn-accent" id="btnEditDetalhe">Editar</button>
             </div>
+        </div>
+    </div>
+
+    <div id="modalAnalise" class="modal-overlay">
+        <div class="modal">
+
+            <div class="modal-header">
+                <h2>Análise do Contrato</h2>
+                <button onclick="fecharModal('modalAnalise')">✕</button>
+            </div>
+
+            <div class="modal-body" id="modalAnaliseBody">
+                <!-- conteúdo dinâmico -->
+            </div>
+
         </div>
     </div>
 
