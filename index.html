@@ -19,45 +19,34 @@
 <body>
     <!-- ═══════════════════════ LOGIN ═══════════════════════ -->
     <div id="loginScreen">
-        <div class="login-bg"></div>
-        <div class="login-grid"></div>
         <div class="login-card">
             <div class="login-logo">
-                <div class="login-logo-icon">
-                    <img src="img/prefeitura.png" alt="Prefeitura de Oriximiná" class="logo-prefeitura">
-                </div>
-                <div class="login-logo-text">
-                    <strong>Prefeitura de Oriximiná</strong>
-                    <span>Sistema de Gestão de Contratos</span>
-                </div>
+                <img src="img/prefeitura.png" alt="Prefeitura de Oriximiná" class="logo-prefeitura-login">
             </div>
-            <h2>Bem-vindo</h2>
-            <p>Acesse com suas credenciais institucionais.</p>
+            <h2 class="login-title">Gestão de Contratos</h2>
+            <p class="login-subtitle">Prefeitura Municipal de Oriximiná/PA</p>
+
+            <div class="login-section-label">Acesso ao sistema</div>
+
             <div class="form-group">
-                <label>Email</label>
-                <div class="input-wrap">
-                    <span class="icon"><i class="bi bi-person"></i></span>
-                    <input type="text" id="lgUser" placeholder="Digite seu usuário" autocomplete="username">
-                </div>
+                <label class="login-label">E-mail institucional <span class="login-required">*</span></label>
+                <input type="text" id="lgUser" class="login-input" placeholder="usuario@oriximina.pa.gov.br" autocomplete="username">
             </div>
             <div class="form-group">
-                <label>Senha</label>
-                <div class="input-wrap">
-                    <span class="icon"><i class="bi bi-lock"></i></span>
-                    <input type="password" id="lgPass" placeholder="Digite sua senha" autocomplete="current-password"
-                        onkeydown="if(event.key==='Enter')logar()">
-                </div>
+                <label class="login-label">Senha <span class="login-required">*</span></label>
+                <input type="password" id="lgPass" class="login-input" placeholder="••••••••" autocomplete="current-password"
+                    onkeydown="if(event.key==='Enter')logar()">
             </div>
-            <button class="btn-primary" id="btnLogin">
-                <span id="btnLoginText">Entrar no Sistema</span>
+            <button class="btn-login" id="btnLogin">
+                <span id="btnLoginText">Entrar</span>
             </button>
 
             <div class="login-progress" id="loginProgress">
                 <div class="login-progress-bar"></div>
             </div>
             <div class="login-error" id="lgError">Usuário ou senha incorretos.</div>
-
         </div>
+        <div class="login-footer-text">Desenvolvido pela Secretaria Municipal de Eficiência Governamental — SEMEG</div>
     </div>
 
     <!-- ═══════════════════════ APP ═══════════════════════ -->

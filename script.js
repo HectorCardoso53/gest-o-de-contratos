@@ -483,7 +483,7 @@ function renderChartVencimento(data) {
         x: { ticks: { color: "#64748b" }, grid: { display: false } },
         y: {
           ticks: { color: "#64748b" },
-          grid: { color: "rgba(255,255,255,0.05)" },
+          grid: { color: "rgba(0,0,0,0.07)" },
         },
       },
     },
@@ -526,7 +526,7 @@ function renderChartValores(data) {
             color: "#64748b",
             callback: (v) => "R$ " + Number(v).toLocaleString("pt-BR"),
           },
-          grid: { color: "rgba(255,255,255,0.05)" },
+          grid: { color: "rgba(0,0,0,0.07)" },
         },
       },
     },
@@ -1266,7 +1266,7 @@ function renderRelatorios() {
       scales: {
         x: {
           ticks: { color: "#64748b" },
-          grid: { color: "rgba(255,255,255,0.05)" },
+          grid: { color: "rgba(0,0,0,0.07)" },
         },
         y: { ticks: { color: "#64748b" }, grid: { display: false } },
       },
@@ -1304,7 +1304,7 @@ function renderRelatorios() {
             color: "#64748b",
             callback: (v) => "R$ " + Number(v).toLocaleString("pt-BR"),
           },
-          grid: { color: "rgba(255,255,255,0.05)" },
+          grid: { color: "rgba(0,0,0,0.07)" },
         },
         y: { ticks: { color: "#64748b" }, grid: { display: false } },
       },
@@ -1624,7 +1624,7 @@ function verDetalhe(id) {
     diasHtml =
       d < 0
         ? `<span style="color:var(--text3)">Expirado há ${Math.abs(d)} dias</span>`
-        : `<span style="color:${d <= 20 ? "#fca5a5" : d <= 30 ? "#fcd34d" : "#6ee7b7"}">${d} dias restantes</span>`;
+        : `<span style="color:${d <= 20 ? "#dc2626" : d <= 30 ? "#d97706" : "#16a34a"}">${d} dias restantes</span>`;
 
   document.getElementById("modalDetalheBody").innerHTML = `
     <div class="detail-row">
