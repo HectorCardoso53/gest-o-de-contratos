@@ -34,8 +34,13 @@
             </div>
             <div class="form-group">
                 <label class="login-label">Senha <span class="login-required">*</span></label>
-                <input type="password" id="lgPass" class="login-input" placeholder="••••••••" autocomplete="current-password"
-                    onkeydown="if(event.key==='Enter')logar()">
+                <div class="login-pass-wrap">
+                    <input type="password" id="lgPass" class="login-input" placeholder="••••••••" autocomplete="current-password"
+                        onkeydown="if(event.key==='Enter')logar()">
+                    <button type="button" class="login-eye" onclick="toggleSenha()" tabindex="-1">
+                        <i class="bi bi-eye" id="eyeIcon"></i>
+                    </button>
+                </div>
             </div>
             <button class="btn-login" id="btnLogin">
                 <span id="btnLoginText">Entrar</span>
@@ -46,7 +51,6 @@
             </div>
             <div class="login-error" id="lgError">Usuário ou senha incorretos.</div>
         </div>
-        <div class="login-footer-text">Desenvolvido pela Secretaria Municipal de Eficiência Governamental — SEMEG</div>
     </div>
 
     <!-- ═══════════════════════ APP ═══════════════════════ -->

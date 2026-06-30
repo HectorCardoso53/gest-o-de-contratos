@@ -59,10 +59,11 @@ onAuthStateChanged(auth, async (user) => {
     document.getElementById("loginScreen").style.display = "none";
     document.getElementById("app").style.display = "block";
 
-    document.getElementById("userName").textContent = user.email;
-    document.getElementById("userRole").textContent = "Usuário";
+    const nomeUsuario = user.email.split("@")[0].replace(/[._]/g, " ").replace(/\b\w/g, c => c.toUpperCase());
+    document.getElementById("userName").textContent = nomeUsuario;
+    document.getElementById("userRole").textContent = user.email;
     document.getElementById("userAvatar").textContent =
-      user.email.charAt(0).toUpperCase();
+      nomeUsuario.charAt(0).toUpperCase();
 
     await initApp(); // 🔥 IMPORTANTE
   } else {
@@ -182,6 +183,18 @@ function diasRestantes(data) {
 
 function logout() {
   signOut(auth);
+}
+
+function toggleSenha() {
+  const input = document.getElementById("lgPass");
+  const icon = document.getElementById("eyeIcon");
+  if (input.type === "password") {
+    input.type = "text";
+    icon.className = "bi bi-eye-slash";
+  } else {
+    input.type = "password";
+    icon.className = "bi bi-eye";
+  }
 }
 
 async function logar() {
