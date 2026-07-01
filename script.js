@@ -1135,23 +1135,23 @@ function buildAlertSection(title, items, type) {
     <!-- 🔥 BOTÕES -->
     <div style="display:flex;gap:6px;flex-wrap:wrap;margin-top:6px;">
 
-      <button 
+      <button
         onclick="gerarNotificacaoContrato('${c.id}')"
-        style="padding:5px 10px;font-size:11px;background:var(--primary);color:#fff;border:none;border-radius:4px;cursor:pointer;display:flex;align-items:center;gap:5px;">
+        style="padding:5px 10px;font-size:11px;background:#dbeafe;color:#1d4ed8;border:1px solid #93c5fd;border-radius:6px;cursor:pointer;display:flex;align-items:center;gap:5px;font-weight:600;">
         <i class="bi bi-share-fill"></i>
         Compartilhar
       </button>
 
-      <button 
+      <button
         onclick="abrirAnalise('${c.id}')"
-        style="padding:5px 10px;font-size:11px;background:#64748b;color:#fff;border:none;border-radius:4px;cursor:pointer;display:flex;align-items:center;gap:5px;">
+        style="padding:5px 10px;font-size:11px;background:#ede9fe;color:#7c3aed;border:1px solid #c4b5fd;border-radius:6px;cursor:pointer;display:flex;align-items:center;gap:5px;font-weight:600;">
         <i class="bi bi-folder2-open"></i>
         Análise
       </button>
 
-      <button 
+      <button
         onclick="arquivarContrato('${c.id}')"
-        style="padding:5px 10px;font-size:11px;background:#334155;color:#fff;border:none;border-radius:4px;cursor:pointer;display:flex;align-items:center;gap:5px;">
+        style="padding:5px 10px;font-size:11px;background:#f1f5f9;color:#475569;border:1px solid #cbd5e1;border-radius:6px;cursor:pointer;display:flex;align-items:center;gap:5px;font-weight:600;">
         <i class="bi bi-archive"></i>
         Arquivar
       </button>
@@ -1159,11 +1159,11 @@ function buildAlertSection(title, items, type) {
       ${
         analise
           ? `
-      <button 
+      <button
         onclick="verAnalise('${c.id}')"
-        style="padding:5px 10px;font-size:11px;background:#0ea5e9;color:#fff;border:none;border-radius:4px;cursor:pointer;display:flex;align-items:center;gap:5px;">
+        style="padding:5px 10px;font-size:11px;background:#dcfce7;color:#15803d;border:1px solid #86efac;border-radius:6px;cursor:pointer;display:flex;align-items:center;gap:5px;font-weight:600;">
         <i class="bi bi-eye"></i>
-        Ver
+        Ver Análise
       </button>
       `
           : ""
